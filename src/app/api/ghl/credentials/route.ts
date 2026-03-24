@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Build the GHL OAuth authorization URL
-    const redirectUri = process.env.GHL_APP_REDIRECT_URI || "http://localhost:3000/api/ghl/auth/callback";
+    const redirectUri = process.env.GHL_APP_REDIRECT_URI || "http://localhost:3000/api/oauth/callback";
     const authUrl = new URL("https://marketplace.gohighlevel.com/oauth/chooselocation");
     authUrl.searchParams.set("response_type", "code");
     authUrl.searchParams.set("redirect_uri", redirectUri);
