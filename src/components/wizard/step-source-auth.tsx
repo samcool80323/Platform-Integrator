@@ -60,7 +60,9 @@ export function StepSourceAuth({
   }
 
   if (!connector) {
-    return <div className="py-12 text-center text-neutral-500">Loading...</div>;
+    return (
+      <div className="py-12 text-center text-muted-foreground">Loading...</div>
+    );
   }
 
   const fields = connector.authConfig.fields || [];
@@ -79,16 +81,13 @@ export function StepSourceAuth({
         <CardContent className="space-y-4">
           {isOAuth ? (
             <div className="space-y-3">
-              <p className="text-sm text-neutral-600">
+              <p className="text-sm text-muted-foreground">
                 Click below to authenticate with {connector.name} via OAuth.
               </p>
-              <Button onClick={() => {
-                // For OAuth, we would redirect to the OAuth flow
-                // For now, show API key fields as fallback
-              }}>
+              <Button onClick={() => {}}>
                 Connect with {connector.name}
               </Button>
-              <p className="text-xs text-neutral-400">
+              <p className="text-xs text-muted-foreground/60">
                 Or enter credentials manually below:
               </p>
               <div className="space-y-3">
@@ -120,7 +119,7 @@ export function StepSourceAuth({
                     }
                   />
                   {field.helpText && (
-                    <p className="text-xs text-neutral-400">{field.helpText}</p>
+                    <p className="text-xs text-muted-foreground/70">{field.helpText}</p>
                   )}
                 </div>
               ))}
@@ -141,14 +140,14 @@ export function StepSourceAuth({
             <div
               className={`flex items-center gap-2 rounded-md p-3 text-sm ${
                 testResult.valid
-                  ? "bg-green-50 text-green-700"
-                  : "bg-red-50 text-red-700"
+                  ? "bg-green-500/10 text-green-500 dark:bg-green-500/20"
+                  : "bg-destructive/10 text-destructive dark:bg-destructive/20"
               }`}
             >
               {testResult.valid ? (
-                <CheckCircle2 className="h-4 w-4" />
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
               ) : (
-                <AlertCircle className="h-4 w-4" />
+                <AlertCircle className="h-4 w-4 shrink-0" />
               )}
               {testResult.valid
                 ? "Connection successful!"

@@ -63,13 +63,12 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-neutral-900">Settings</h1>
-        <p className="text-sm text-neutral-500">
+        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        <p className="text-sm text-muted-foreground">
           Configure your GoHighLevel agency connection
         </p>
       </div>
 
-      {/* GHL Connection Status */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">GoHighLevel Connection</CardTitle>
@@ -81,12 +80,12 @@ export default function SettingsPage() {
           {status?.connected ? (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-                <span className="font-medium text-green-700">Connected</span>
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <span className="font-medium text-green-500">Connected</span>
                 <Badge variant="secondary">{status.companyName}</Badge>
               </div>
               {status.tokenExpiresAt && (
-                <p className="text-sm text-neutral-500">
+                <p className="text-sm text-muted-foreground">
                   Token expires: {new Date(status.tokenExpiresAt).toLocaleString()}
                 </p>
               )}
@@ -121,8 +120,8 @@ export default function SettingsPage() {
                   required
                 />
               </div>
-              <div className="rounded-md bg-neutral-100 p-3 text-sm text-neutral-600">
-                <p className="font-medium">How to get these credentials:</p>
+              <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                <p className="font-medium text-foreground">How to get these credentials:</p>
                 <ol className="mt-1 list-inside list-decimal space-y-1">
                   <li>Go to marketplace.gohighlevel.com</li>
                   <li>Create or select your Marketplace App</li>
@@ -132,7 +131,7 @@ export default function SettingsPage() {
               </div>
 
               {message && (
-                <div className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <AlertCircle className="h-4 w-4" />
                   {message}
                 </div>

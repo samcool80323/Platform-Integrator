@@ -37,31 +37,35 @@ export function StepSelectSource({ onSelect }: StepSelectSourceProps) {
   }, []);
 
   if (loading) {
-    return <div className="py-12 text-center text-neutral-500">Loading connectors...</div>;
+    return (
+      <div className="py-12 text-center text-muted-foreground">
+        Loading connectors...
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
-      <p className="text-neutral-600">
+      <p className="text-muted-foreground">
         Select the platform your client is migrating from:
       </p>
       <div className="grid gap-4 md:grid-cols-2">
         {connectors.map((connector) => (
           <Card
             key={connector.id}
-            className="cursor-pointer transition-all hover:border-neutral-400 hover:shadow-md"
+            className="cursor-pointer transition-all hover:border-primary/50 hover:shadow-md"
             onClick={() => onSelect(connector.id, connector.name)}
           >
             <CardHeader className="pb-2">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-neutral-100 text-lg font-bold text-neutral-700">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-lg font-bold text-muted-foreground">
                   {connector.name[0]}
                 </div>
                 <CardTitle className="text-lg">{connector.name}</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
-              <p className="mb-3 text-sm text-neutral-500">
+              <p className="mb-3 text-sm text-muted-foreground">
                 {connector.description}
               </p>
               <div className="flex flex-wrap gap-2">

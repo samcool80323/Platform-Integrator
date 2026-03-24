@@ -29,8 +29,8 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Dashboard</h1>
-          <p className="text-sm text-neutral-500">
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
             Manage your CRM data migrations
           </p>
         </div>
@@ -58,9 +58,9 @@ export default async function DashboardPage() {
         <CardContent>
           {migrations.length === 0 ? (
             <div className="py-12 text-center">
-              <ArrowRightLeft className="mx-auto mb-3 h-10 w-10 text-neutral-300" />
-              <p className="text-neutral-500">No migrations yet</p>
-              <p className="text-sm text-neutral-400">
+              <ArrowRightLeft className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+              <p className="text-muted-foreground">No migrations yet</p>
+              <p className="text-sm text-muted-foreground/70">
                 Create your first migration to get started
               </p>
             </div>
@@ -70,21 +70,21 @@ export default async function DashboardPage() {
                 <Link
                   key={m.id}
                   href={`/migrations/${m.id}`}
-                  className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-neutral-50"
+                  className="flex items-center justify-between rounded-lg border border-border p-4 transition-colors hover:bg-muted/50"
                 >
                   <div className="flex items-center gap-4">
                     <div>
-                      <p className="font-medium text-neutral-900">
+                      <p className="font-medium text-foreground">
                         {m.connectorId} → {m.ghlLocationName}
                       </p>
-                      <p className="text-sm text-neutral-500">
+                      <p className="text-sm text-muted-foreground">
                         {m.processedContacts} / {m.totalContacts} contacts
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <StatusBadge status={m.status} />
-                    <span className="text-xs text-neutral-400">
+                    <span className="text-xs text-muted-foreground/60">
                       {m.createdAt.toLocaleDateString()}
                     </span>
                   </div>
@@ -110,12 +110,12 @@ function StatCard({
   return (
     <Card>
       <CardContent className="flex items-center gap-4 pt-6">
-        <div className="rounded-lg bg-neutral-100 p-2">
-          <Icon className="h-5 w-5 text-neutral-600" />
+        <div className="rounded-lg bg-muted p-2">
+          <Icon className="h-5 w-5 text-muted-foreground" />
         </div>
         <div>
-          <p className="text-2xl font-bold">{value}</p>
-          <p className="text-sm text-neutral-500">{title}</p>
+          <p className="text-2xl font-bold text-foreground">{value}</p>
+          <p className="text-sm text-muted-foreground">{title}</p>
         </div>
       </CardContent>
     </Card>

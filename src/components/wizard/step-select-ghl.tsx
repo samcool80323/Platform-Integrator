@@ -53,17 +53,17 @@ export function StepSelectGHL({ onSelect, onBack }: StepSelectGHLProps) {
         </CardHeader>
         <CardContent>
           {loading && (
-            <div className="py-8 text-center text-neutral-500">
+            <div className="py-8 text-center text-muted-foreground">
               Loading sub-accounts...
             </div>
           )}
 
           {error && (
-            <div className="flex items-center gap-2 rounded-md bg-red-50 p-4 text-sm text-red-700">
-              <AlertCircle className="h-4 w-4" />
+            <div className="flex items-center gap-2 rounded-md bg-destructive/10 p-4 text-sm text-destructive dark:bg-destructive/20">
+              <AlertCircle className="h-4 w-4 shrink-0" />
               <div>
                 <p className="font-medium">{error}</p>
-                <p className="mt-1">
+                <p className="mt-1 text-destructive/80">
                   Make sure you&apos;ve connected your GHL agency in{" "}
                   <a href="/settings" className="underline">
                     Settings
@@ -74,7 +74,7 @@ export function StepSelectGHL({ onSelect, onBack }: StepSelectGHLProps) {
           )}
 
           {!loading && !error && accounts.length === 0 && (
-            <div className="py-8 text-center text-neutral-500">
+            <div className="py-8 text-center text-muted-foreground">
               No sub-accounts found
             </div>
           )}
@@ -84,15 +84,15 @@ export function StepSelectGHL({ onSelect, onBack }: StepSelectGHLProps) {
               <button
                 key={account.id}
                 onClick={() => onSelect(account.id, account.name)}
-                className="flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors hover:bg-neutral-50"
+                className="flex w-full items-center gap-3 rounded-lg border border-border p-4 text-left transition-colors hover:bg-muted/50 hover:text-foreground"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-neutral-100">
-                  <Building2 className="h-5 w-5 text-neutral-600" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                  <Building2 className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="font-medium text-neutral-900">{account.name}</p>
+                  <p className="font-medium text-foreground">{account.name}</p>
                   {(account.address || account.city) && (
-                    <p className="text-sm text-neutral-500">
+                    <p className="text-sm text-muted-foreground">
                       {[account.address, account.city].filter(Boolean).join(", ")}
                     </p>
                   )}

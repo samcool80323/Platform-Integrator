@@ -57,7 +57,6 @@ export default function NewMigrationPage() {
       if (!res.ok) throw new Error("Failed to create migration");
       const { migration } = await res.json();
 
-      // Start the migration
       await fetch(`/api/migrations/${migration.id}/start`, { method: "POST" });
 
       router.push(`/migrations/${migration.id}`);
@@ -69,36 +68,36 @@ export default function NewMigrationPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-neutral-900">New Migration</h1>
-        <p className="text-sm text-neutral-500">
+        <h1 className="text-2xl font-bold text-foreground">New Migration</h1>
+        <p className="text-sm text-muted-foreground">
           Import data from your client&apos;s CRM into GoHighLevel
         </p>
       </div>
 
       {/* Step indicator */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {STEPS.map((label, i) => (
           <div key={label} className="flex items-center gap-2">
             <div
               className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
-                i < step
-                  ? "bg-neutral-900 text-white"
-                  : i === step
-                    ? "bg-neutral-900 text-white"
-                    : "bg-neutral-100 text-neutral-400"
+                i <= step
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
               }`}
             >
               {i < step ? "✓" : i + 1}
             </div>
             <span
               className={`text-sm ${
-                i === step ? "font-medium text-neutral-900" : "text-neutral-400"
+                i === step
+                  ? "font-medium text-foreground"
+                  : "text-muted-foreground"
               }`}
             >
               {label}
             </span>
             {i < STEPS.length - 1 && (
-              <div className="mx-2 h-px w-8 bg-neutral-200" />
+              <div className="mx-2 h-px w-8 bg-border" />
             )}
           </div>
         ))}

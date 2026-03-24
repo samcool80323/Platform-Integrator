@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -59,7 +60,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50">
+    <div className="relative flex min-h-screen items-center justify-center bg-background">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Platform Integrator</CardTitle>
@@ -85,19 +89,19 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm text-destructive">{error}</p>
             )}
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Loading..." : isRegister ? "Create Account" : "Sign In"}
             </Button>
 
-            <p className="text-center text-sm text-neutral-500">
+            <p className="text-center text-sm text-muted-foreground">
               {isRegister ? "Already have an account?" : "Don't have an account?"}{" "}
               <button
                 type="button"
                 onClick={() => { setIsRegister(!isRegister); setError(""); }}
-                className="text-neutral-900 underline hover:no-underline"
+                className="text-foreground underline hover:no-underline"
               >
                 {isRegister ? "Sign in" : "Register"}
               </button>

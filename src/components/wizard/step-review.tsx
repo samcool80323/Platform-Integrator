@@ -53,9 +53,11 @@ export function StepReview({ state, onStart, onBack }: StepReviewProps) {
         <CardContent className="space-y-6">
           {/* Source */}
           <div>
-            <h3 className="text-sm font-medium text-neutral-500">Source</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">Source</h3>
             <div className="mt-1 flex items-center gap-2">
-              <span className="text-lg font-medium">{state.connectorName}</span>
+              <span className="text-lg font-medium text-foreground">
+                {state.connectorName}
+              </span>
               {state.credentialLabel && (
                 <Badge variant="outline">{state.credentialLabel}</Badge>
               )}
@@ -64,15 +66,17 @@ export function StepReview({ state, onStart, onBack }: StepReviewProps) {
 
           {/* Destination */}
           <div>
-            <h3 className="text-sm font-medium text-neutral-500">
+            <h3 className="text-sm font-medium text-muted-foreground">
               Destination (GHL Sub-Account)
             </h3>
-            <p className="mt-1 text-lg font-medium">{state.ghlLocationName}</p>
+            <p className="mt-1 text-lg font-medium text-foreground">
+              {state.ghlLocationName}
+            </p>
           </div>
 
           {/* Field Mapping Summary */}
           <div>
-            <h3 className="text-sm font-medium text-neutral-500">
+            <h3 className="text-sm font-medium text-muted-foreground">
               Field Mappings
             </h3>
             <div className="mt-2 flex gap-3">
@@ -84,24 +88,24 @@ export function StepReview({ state, onStart, onBack }: StepReviewProps) {
                 {customMappings.length} custom fields to create
               </Badge>
             </div>
-            <div className="mt-2 rounded-md bg-neutral-50 p-3">
+            <div className="mt-2 rounded-md bg-muted/50 p-3">
               <div className="space-y-1 text-sm">
                 {state.fieldMappings.slice(0, 8).map((m) => (
                   <div key={m.sourceField} className="flex items-center gap-2">
-                    <span className="text-neutral-600">{m.sourceField}</span>
-                    <span className="text-neutral-300">→</span>
-                    <span className="font-medium">
+                    <span className="text-muted-foreground">{m.sourceField}</span>
+                    <span className="text-muted-foreground/40">→</span>
+                    <span className="font-medium text-foreground">
                       {m.targetField.replace("custom:", "")}
                     </span>
                     {m.targetType === "custom" && (
-                      <Badge className="bg-yellow-100 text-yellow-700 text-xs">
+                      <Badge className="bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 text-xs">
                         new
                       </Badge>
                     )}
                   </div>
                 ))}
                 {state.fieldMappings.length > 8 && (
-                  <p className="text-neutral-400">
+                  <p className="text-muted-foreground/60">
                     +{state.fieldMappings.length - 8} more fields
                   </p>
                 )}
@@ -110,7 +114,7 @@ export function StepReview({ state, onStart, onBack }: StepReviewProps) {
           </div>
 
           {/* Start button */}
-          <div className="border-t pt-4">
+          <div className="border-t border-border pt-4">
             <Button
               size="lg"
               onClick={handleStart}

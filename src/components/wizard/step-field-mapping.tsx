@@ -97,7 +97,7 @@ export function StepFieldMapping({
 
   if (loading) {
     return (
-      <div className="py-12 text-center text-neutral-500">
+      <div className="py-12 text-center text-muted-foreground">
         Discovering fields from source platform...
       </div>
     );
@@ -109,7 +109,7 @@ export function StepFieldMapping({
         <Button variant="ghost" size="sm" onClick={onBack}>
           <ChevronLeft className="mr-1 h-4 w-4" /> Back
         </Button>
-        <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
+        <div className="rounded-md bg-destructive/10 p-4 text-sm text-destructive dark:bg-destructive/20">
           {error}
         </div>
       </div>
@@ -129,7 +129,7 @@ export function StepFieldMapping({
       <Card>
         <CardHeader>
           <CardTitle>Field Mapping</CardTitle>
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-muted-foreground">
             Map source fields to GoHighLevel contact fields. Unmatched fields
             will be created as custom fields.
           </p>
@@ -147,7 +147,7 @@ export function StepFieldMapping({
 
           {/* Mapping table */}
           <div className="space-y-2">
-            <div className="grid grid-cols-[1fr,auto,1fr,auto] items-center gap-2 px-2 text-xs font-medium text-neutral-500">
+            <div className="grid grid-cols-[1fr,auto,1fr,auto] items-center gap-2 px-2 text-xs font-medium text-muted-foreground">
               <span>Source Field</span>
               <span />
               <span>GHL Field</span>
@@ -155,34 +155,32 @@ export function StepFieldMapping({
             </div>
 
             {fields.map((field) => {
-              const mapping = mappings.find(
-                (m) => m.sourceField === field.key
-              );
+              const mapping = mappings.find((m) => m.sourceField === field.key);
               return (
                 <div
                   key={field.key}
-                  className="grid grid-cols-[1fr,auto,1fr,auto] items-center gap-2 rounded-md border p-2"
+                  className="grid grid-cols-[1fr,auto,1fr,auto] items-center gap-2 rounded-md border border-border p-2"
                 >
                   {/* Source field */}
                   <div>
-                    <p className="text-sm font-medium">{field.label}</p>
+                    <p className="text-sm font-medium text-foreground">{field.label}</p>
                     <div className="flex items-center gap-1">
                       <Badge variant="outline" className="text-xs">
                         {field.type}
                       </Badge>
                       {field.sampleValues?.[0] && (
-                        <span className="truncate text-xs text-neutral-400">
+                        <span className="truncate text-xs text-muted-foreground/60">
                           e.g. {field.sampleValues[0]}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <ArrowRight className="h-4 w-4 text-neutral-300" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground/40" />
 
                   {/* Target field selector */}
                   <select
-                    className="rounded-md border px-2 py-1.5 text-sm"
+                    className="rounded-md border border-input bg-background px-2 py-1.5 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
                     value={mapping?.targetField || "skip"}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -209,12 +207,12 @@ export function StepFieldMapping({
                   {/* Status badge */}
                   <div className="w-16 text-right">
                     {mapping?.targetType === "standard" && (
-                      <Badge className="bg-green-100 text-green-700 text-xs">
+                      <Badge className="bg-green-500/15 text-green-600 dark:text-green-400 text-xs">
                         mapped
                       </Badge>
                     )}
                     {mapping?.targetType === "custom" && (
-                      <Badge className="bg-yellow-100 text-yellow-700 text-xs">
+                      <Badge className="bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 text-xs">
                         custom
                       </Badge>
                     )}

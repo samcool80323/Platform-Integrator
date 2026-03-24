@@ -40,7 +40,6 @@ export default function MigrationDetailPage() {
   useEffect(() => {
     loadMigration();
     loadLogs();
-    // Set up SSE for real-time updates
     const eventSource = new EventSource(`/api/events?migrationId=${migrationId}`);
     eventSource.onmessage = () => {
       loadMigration();
@@ -74,7 +73,9 @@ export default function MigrationDetailPage() {
   }
 
   if (loading || !migration) {
-    return <div className="py-12 text-center text-neutral-500">Loading...</div>;
+    return (
+      <div className="py-12 text-center text-muted-foreground">Loading...</div>
+    );
   }
 
   const contactProgress =
@@ -84,14 +85,21 @@ export default function MigrationDetailPage() {
         )
       : 0;
 
+  const convProgress =
+    migration.totalConversations > 0
+      ? Math.round(
+          (migration.processedConversations / migration.totalConversations) * 100
+        )
+      : 0;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">
+          <h1 className="text-2xl font-bold text-foreground">
             Migration Details
           </h1>
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-muted-foreground">
             {migration.connectorId} → {migration.ghlLocationName}
           </p>
         </div>
@@ -110,26 +118,26 @@ export default function MigrationDetailPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-neutral-500">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Contacts
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm text-foreground">
                 <span>
                   {migration.processedContacts} / {migration.totalContacts}
                 </span>
                 <span>{contactProgress}%</span>
               </div>
-              <div className="h-2 rounded-full bg-neutral-100">
+              <div className="h-2 rounded-full bg-muted">
                 <div
-                  className="h-full rounded-full bg-neutral-900 transition-all"
+                  className="h-full rounded-full bg-primary transition-all"
                   style={{ width: `${contactProgress}%` }}
                 />
               </div>
               {migration.failedContacts > 0 && (
-                <p className="text-sm text-red-600">
+                <p className="text-sm text-destructive">
                   {migration.failedContacts} failed
                 </p>
               )}
@@ -139,30 +147,23 @@ export default function MigrationDetailPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-neutral-500">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Conversations
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm text-foreground">
                 <span>
                   {migration.processedConversations} /{" "}
                   {migration.totalConversations}
                 </span>
+                <span>{convProgress}%</span>
               </div>
-              <div className="h-2 rounded-full bg-neutral-100">
+              <div className="h-2 rounded-full bg-muted">
                 <div
-                  className="h-full rounded-full bg-neutral-900 transition-all"
-                  style={{
-                    width: `${
-                      migration.totalConversations > 0
-                        ? (migration.processedConversations /
-                            migration.totalConversations) *
-                          100
-                        : 0
-                    }%`,
-                  }}
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${convProgress}%` }}
                 />
               </div>
             </div>
@@ -170,31 +171,36 @@ export default function MigrationDetailPage() {
         </Card>
       </div>
 
-      {/* Logs */}
+      {/* Logs — intentionally dark terminal style in both modes */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">Logs</CardTitle>
+          <CardTitle className="text-lg">
+            <div className="flex items-center gap-2">
+              <ArrowRightLeft className="h-4 w-4" />
+              Logs
+            </div>
+          </CardTitle>
           <Button variant="ghost" size="sm" onClick={loadLogs}>
             <RefreshCw className="h-4 w-4" />
           </Button>
         </CardHeader>
         <CardContent>
-          <div className="max-h-96 space-y-1 overflow-y-auto rounded-md bg-neutral-950 p-4 font-mono text-xs">
+          <div className="max-h-96 space-y-1 overflow-y-auto rounded-md bg-slate-950 p-4 font-mono text-xs">
             {logs.length === 0 ? (
-              <p className="text-neutral-500">No logs yet...</p>
+              <p className="text-slate-500">No logs yet...</p>
             ) : (
               logs.map((log) => (
                 <div
                   key={log.id}
-                  className={`${
+                  className={
                     log.level === "ERROR"
                       ? "text-red-400"
                       : log.level === "WARN"
                         ? "text-yellow-400"
-                        : "text-neutral-300"
-                  }`}
+                        : "text-slate-300"
+                  }
                 >
-                  <span className="text-neutral-600">
+                  <span className="text-slate-500">
                     {new Date(log.timestamp).toLocaleTimeString()}{" "}
                   </span>
                   <span className="mr-2">[{log.level}]</span>
