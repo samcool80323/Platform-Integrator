@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String?
+  hashedPassword String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  ghlCredential GhlAgencyCredential?
+  migrations    Migration[]
+}
+
+model GhlAgencyCredential {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id])
+  clientId       String
+  clientSecret   String
+  accessToken    String?
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  companyId      String?
+  companyName    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model ConnectorCredential {
+  id            String    @id @default(cuid())
+  connectorId   String
+  label         String
+  credentials   String // encrypted JSON blob
+  isValid       Boolean   @default(true)
+  lastValidated DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  migrations Migration[]
+
+  @@index([connectorId])
+}
+
+model Migration {
+  id                      String          @id @default(cuid())
+  userId                  String
+  user                    User            @relation(fields: [userId], references: [id])
+  connectorId             String
+  connectorCredentialId   String
+  connectorCredential     ConnectorCredential @relation(fields: [connectorCredentialId], references: [id])
+  ghlLocationId           String
+  ghlLocationName         String
+  fieldMappings           Json
+  options                 Json?
+  status                  MigrationStatus @default(PENDING)
+  startedAt               DateTime?
+  completedAt             DateTime?
+  lastBatchProcessed      Int             @default(0)
+
+  totalContacts           Int             @default(0)
+  processedContacts       Int             @default(0)
+  failedContacts          Int             @default(0)
+  totalConversations      Int             @default(0)
+  processedConversations  Int             @default(0)
+  failedConversations     Int             @default(0)
+  totalOpportunities      Int             @default(0)
+  processedOpportunities  Int             @default(0)
+  failedOpportunities     Int             @default(0)
+  totalAppointments       Int             @default(0)
+  processedAppointments   Int             @default(0)
+  failedAppointments      Int             @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  records MigrationRecord[]
+  logs    MigrationLog[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+enum MigrationStatus {
+  PENDING
+  RUNNING
+  PAUSED
+  COMPLETED
+  COMPLETED_WITH_ERRORS
+  FAILED
+  CANCELLED
+}
+
+model MigrationRecord {
+  id           String       @id @default(cuid())
+  migrationId  String
+  migration    Migration    @relation(fields: [migrationId], references: [id])
+  entityType   EntityType
+  sourceId     String
+  ghlId        String?
+  status       RecordStatus
+  errorMessage String?
+  errorCode    String?
+  retryCount   Int          @default(0)
+  sourceData   Json?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([migrationId, entityType, status])
+  @@index([migrationId, sourceId])
+}
+
+enum EntityType {
+  CONTACT
+  CONVERSATION
+  MESSAGE
+  OPPORTUNITY
+  APPOINTMENT
+}
+
+enum RecordStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  SKIPPED
+  RETRYING
+}
+
+model MigrationLog {
+  id          String   @id @default(cuid())
+  migrationId String
+  migration   Migration @relation(fields: [migrationId], references: [id])
+  level       LogLevel
+  message     String
+  details     Json?
+  timestamp   DateTime @default(now())
+
+  @@index([migrationId, timestamp])
+}
+
+enum LogLevel {
+  INFO
+  WARN
+  ERROR
+  DEBUG
+}
+
+model CustomFieldMapping {
+  id             String   @id @default(cuid())
+  ghlLocationId  String
+  connectorId    String
+  sourceFieldKey String
+  ghlFieldId     String
+  ghlFolderId    String
+  createdAt      DateTime @default(now())
+
+  @@unique([ghlLocationId, connectorId, sourceFieldKey])
+  @@index([ghlLocationId, connectorId])
+}
