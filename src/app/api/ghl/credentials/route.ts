@@ -64,6 +64,8 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[/api/ghl/credentials] Unhandled error:", message);
+    return NextResponse.json({ error: "Internal server error", detail: message }, { status: 500 });
   }
 }
