@@ -26,6 +26,7 @@ const GHL_STANDARD_FIELDS = [
 interface StepFieldMappingProps {
   connectorId: string;
   credentials: Record<string, string>;
+  credentialId?: string; // if set, server will look up credentials by ID
   onConfirm: (fields: FieldSchema[], mappings: FieldMapping[]) => void;
   onBack: () => void;
 }
@@ -33,6 +34,7 @@ interface StepFieldMappingProps {
 export function StepFieldMapping({
   connectorId,
   credentials,
+  credentialId,
   onConfirm,
   onBack,
 }: StepFieldMappingProps) {
@@ -45,7 +47,7 @@ export function StepFieldMapping({
     fetch(`/api/connectors/${connectorId}/discover`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ credentials }),
+      body: JSON.stringify(credentialId ? { credentialId } : { credentials }),
     })
       .then(async (r) => {
         if (!r.ok) throw new Error("Failed to discover fields");

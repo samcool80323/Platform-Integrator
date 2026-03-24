@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { decryptJson } from "@/lib/encryption";
 import { getConnector } from "@/lib/connectors/registry";
 
 export async function POST(
@@ -18,7 +20,19 @@ export async function POST(
   }
 
   const body = await req.json();
-  const result = await connector.validateCredentials(body.credentials || {});
+  let credentials: Record<string, string> = body.credentials || {};
 
+  // If a saved credentialId is provided, load credentials from DB
+  if (body.credentialId) {
+    const record = await prisma.connectorCredential.findFirst({
+      where: { id: body.credentialId, userId: session.user.id },
+    });
+    if (!record) {
+      return NextResponse.json({ error: "Saved account not found" }, { status: 404 });
+    }
+    credentials = decryptJson<Record<string, string>>(record.credentials);
+  }
+
+  const result = await connector.validateCredentials(credentials);
   return NextResponse.json(result);
 }

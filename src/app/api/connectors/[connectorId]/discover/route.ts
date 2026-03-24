@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { decryptJson } from "@/lib/encryption";
 import { getConnector } from "@/lib/connectors/registry";
 import { autoMapFields } from "@/lib/connectors/base";
 
@@ -20,9 +22,21 @@ export async function POST(
 
   try {
     const body = await req.json();
-    const fields = await connector.discoverFields(body.credentials || {});
+    let credentials: Record<string, string> = body.credentials || {};
 
-    // Get default mappings from connector, fallback to auto-mapping
+    // If a saved credentialId is provided, load credentials from DB
+    if (body.credentialId) {
+      const record = await prisma.connectorCredential.findFirst({
+        where: { id: body.credentialId, userId: session.user.id },
+      });
+      if (!record) {
+        return NextResponse.json({ error: "Saved account not found" }, { status: 404 });
+      }
+      credentials = decryptJson<Record<string, string>>(record.credentials);
+    }
+
+    const fields = await connector.discoverFields(credentials);
+
     let mappings = connector.getDefaultFieldMapping();
     if (mappings.length === 0) {
       mappings = autoMapFields(fields);
