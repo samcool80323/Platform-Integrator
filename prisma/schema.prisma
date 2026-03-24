@@ -15,8 +15,10 @@ model User {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  ghlCredential GhlAgencyCredential?
-  migrations    Migration[]
+  ghlCredential        GhlAgencyCredential?
+  connectorOAuthApps   ConnectorOAuthApp[]
+  connectorCredentials ConnectorCredential[]
+  migrations           Migration[]
 }
 
 model GhlAgencyCredential {
@@ -36,9 +38,11 @@ model GhlAgencyCredential {
 
 model ConnectorCredential {
   id            String    @id @default(cuid())
+  userId        String?   // nullable for backward compat, but always set going forward
+  user          User?     @relation(fields: [userId], references: [id])
   connectorId   String
   label         String
-  credentials   String // encrypted JSON blob
+  credentials   String    // encrypted JSON blob
   isValid       Boolean   @default(true)
   lastValidated DateTime?
   createdAt     DateTime  @default(now())
@@ -47,6 +51,24 @@ model ConnectorCredential {
   migrations Migration[]
 
   @@index([connectorId])
+  @@index([userId])
+}
+
+// Stores per-user OAuth2 app credentials for each connector platform
+// (e.g. each agency enters their own Podium client_id/secret here)
+model ConnectorOAuthApp {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  connectorId  String   // e.g. "podium"
+  clientId     String   // encrypted
+  clientSecret String   // encrypted
+  redirectUri  String?  // optional override; defaults to platform's standard callback
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, connectorId])
+  @@index([userId])
 }
 
 model Migration {

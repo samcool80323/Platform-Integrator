@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { decrypt, encrypt } from "@/lib/encryption";
 import { getConnector } from "@/lib/connectors/registry";
 import crypto from "crypto";
-import { encrypt } from "@/lib/encryption";
-
-// Map connector IDs to their env var prefixes
-const CONNECTOR_ENV_PREFIX: Record<string, string> = {
-  podium: "PODIUM",
-};
 
 export async function GET(
   req: NextRequest,
@@ -15,7 +11,7 @@ export async function GET(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
   const { connectorId } = await params;
@@ -29,21 +25,25 @@ export async function GET(
     return NextResponse.json({ error: "Connector does not use OAuth2" }, { status: 400 });
   }
 
-  const prefix = CONNECTOR_ENV_PREFIX[connectorId];
-  const clientId = prefix ? process.env[`${prefix}_CLIENT_ID`] : undefined;
+  // Load this user's OAuth app credentials from DB
+  const oauthApp = await prisma.connectorOAuthApp.findUnique({
+    where: { userId_connectorId: { userId: session.user.id, connectorId } },
+  });
 
-  if (!clientId) {
-    return NextResponse.json(
-      { error: `${connectorId} OAuth is not configured. Set ${prefix}_CLIENT_ID in environment variables.` },
-      { status: 503 }
+  if (!oauthApp) {
+    // Redirect back to settings with a clear error
+    const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "";
+    return NextResponse.redirect(
+      `${baseUrl}/settings?oauth_setup_needed=${connectorId}`
     );
   }
 
-  // Generate a CSRF state token and store it in a cookie
+  const clientId = decrypt(oauthApp.clientId);
+  const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "http://localhost:3000";
+  const redirectUri = oauthApp.redirectUri || `${baseUrl}/api/connectors/${connectorId}/oauth/callback`;
+
+  // Generate CSRF state token
   const state = crypto.randomBytes(24).toString("hex");
-  const redirectUri =
-    process.env[`${prefix}_REDIRECT_URI`] ||
-    `${process.env.NEXTAUTH_URL}/api/connectors/${connectorId}/oauth/callback`;
 
   const authUrl = new URL(connector.authConfig.authorizationUrl!);
   authUrl.searchParams.set("client_id", clientId);
@@ -54,7 +54,7 @@ export async function GET(
 
   const response = NextResponse.redirect(authUrl.toString());
 
-  // Store state + userId in a short-lived encrypted cookie so callback can verify
+  // Store state in an encrypted cookie for CSRF validation in callback
   const cookiePayload = encrypt(JSON.stringify({ state, userId: session.user.id, connectorId }));
   response.cookies.set(`oauth_state_${connectorId}`, cookiePayload, {
     httpOnly: true,

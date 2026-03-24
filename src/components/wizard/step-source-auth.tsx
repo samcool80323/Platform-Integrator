@@ -65,6 +65,7 @@ export function StepSourceAuth({
   const [showManual, setShowManual] = useState(false);
   const [oauthStatus, setOauthStatus] = useState<"idle" | "fetching" | "done" | "error">("idle");
   const [oauthError, setOauthError] = useState<string | null>(null);
+  const [oauthAppConfigured, setOauthAppConfigured] = useState<boolean | null>(null);
 
   useEffect(() => {
     fetch("/api/connectors")
@@ -72,6 +73,13 @@ export function StepSourceAuth({
       .then((data) => {
         const c = data.connectors?.find((c: ConnectorDetail) => c.id === connectorId);
         setConnector(c || null);
+        // If OAuth2, check if the user has app credentials configured
+        if (c?.authConfig?.type === "oauth2") {
+          fetch(`/api/connectors/${connectorId}/oauth-app`)
+            .then((r) => r.json())
+            .then((d) => setOauthAppConfigured(d.configured ?? false))
+            .catch(() => setOauthAppConfigured(false));
+        }
       });
   }, [connectorId]);
 
@@ -210,8 +218,28 @@ export function StepSourceAuth({
                 </div>
               )}
 
-              {/* Connect button — only show if not already done */}
-              {oauthStatus !== "done" && (
+              {/* Not configured warning */}
+              {oauthAppConfigured === false && (
+                <div className="rounded-md border border-orange-500/40 bg-orange-500/10 p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-orange-600 dark:text-orange-400">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    {connector.name} app credentials not set up yet
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Before connecting, you need to register your own {connector.name} developer app
+                    and save the Client ID & Secret in Settings.
+                  </p>
+                  <Button asChild size="sm" variant="outline">
+                    <a href="/settings?oauth_setup_needed=podium">
+                      Go to Settings to configure
+                      <ExternalLink className="ml-2 h-3 w-3" />
+                    </a>
+                  </Button>
+                </div>
+              )}
+
+              {/* Connect button — only show if not already done and app is configured */}
+              {oauthStatus !== "done" && oauthAppConfigured !== false && (
                 <Button
                   asChild
                   className="w-full sm:w-auto"
