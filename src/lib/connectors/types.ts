@@ -23,6 +23,8 @@ export interface AuthConfig {
   authorizationUrl?: string;
   tokenUrl?: string;
   scopes?: string[];
+  // Human-readable descriptions for each scope
+  scopeDescriptions?: Record<string, string>;
 }
 
 export interface ConnectorCapabilities {

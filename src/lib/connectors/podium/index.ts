@@ -34,6 +34,10 @@ export class PodiumConnector implements PlatformConnector {
     authorizationUrl: "https://api.podium.com/oauth/authorize",
     tokenUrl: "https://api.podium.com/oauth/token",
     scopes: ["read", "write"],
+    scopeDescriptions: {
+      read: "Read contacts, conversations, reviews, and location data",
+      write: "Create and update contacts and conversations",
+    },
   };
 
   capabilities: ConnectorCapabilities = {
