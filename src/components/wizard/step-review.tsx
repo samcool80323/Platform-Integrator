@@ -10,7 +10,8 @@ import type { FieldMapping, FieldSchema } from "@/lib/universal-model/types";
 interface WizardState {
   connectorId: string;
   connectorName: string;
-  credentials: Record<string, string>;
+  credentialId?: string;
+  credentials?: Record<string, string>;
   credentialLabel: string;
   ghlLocationId: string;
   ghlLocationName: string;
