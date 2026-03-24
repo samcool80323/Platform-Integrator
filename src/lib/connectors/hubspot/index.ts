@@ -36,10 +36,11 @@ HubSpot uses "Private App" tokens — they are easy to create and more secure th
    - **App name:** GHL Migration (or any name you like)
    - **Description:** Optional
 3. Click the **"Scopes"** tab at the top
-4. Enable these scopes (tick the boxes):
+4. Enable ONLY these **read-only** scopes — do NOT enable any write scopes:
    - ✅ **crm.objects.contacts.read**
    - ✅ **crm.objects.companies.read** (optional)
    - ✅ **crm.objects.deals.read** (optional)
+   > We only read/export data from HubSpot — no write access is needed.
 5. Click **"Create app"** button
 
 ---
