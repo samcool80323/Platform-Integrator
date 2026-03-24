@@ -10,15 +10,48 @@ import { inferFieldType } from "../base";
 const CLINICO_API_BASE = "https://api.cliniko.com/v1";
 
 const CREDENTIAL_GUIDE = `
-## How to get your Cliniko API key
+## How to get your Cliniko API Key
 
-1. **Log in** to your Cliniko account
-2. Click your **name** in the top right → **My Info**
-3. Scroll down to **API Keys**
-4. Click **"Generate New API Key"**
-5. Copy the key and enter it below
+---
 
-> **Important:** The API key uses HTTP Basic auth. Your key is the username, and the password is left blank.
+### Step 1 — Log in to Cliniko
+1. Open your browser and go to your Cliniko account URL
+   - It usually looks like: **https://[yourpractice].cliniko.com**
+   - Or go to **https://www.cliniko.com** and click "Sign In"
+2. Enter your email and password
+
+---
+
+### Step 2 — Go to My Info
+1. Look at the **top right corner** of the screen — you'll see your name
+2. Click on your name
+3. A dropdown appears — click **"My Info"**
+
+---
+
+### Step 3 — Scroll down to API Keys
+1. The "My Info" page will open
+2. Scroll down towards the bottom of the page
+3. Look for a section called **"API Keys"**
+
+---
+
+### Step 4 — Generate a New API Key
+1. Click the **"Generate New API Key"** button
+2. A popup or new section will appear — you can give it a label like **"GHL Migration"** (optional)
+3. Click **"Generate"** or **"Confirm"**
+
+---
+
+### Step 5 — Copy your API Key
+1. Your API key will appear — it looks like a long random string, often ending in \`==\`
+   - Example: \`MjoxMjM0NTY3OC1hYmNk...\`
+2. Copy the entire key
+3. Paste it into the **"API Key"** field below
+
+> **Important:** Each staff member has their own API key. Use an admin account's key to ensure full access to patient data.
+
+> **Tip:** If the API Keys section doesn't appear, ask your Cliniko account owner — API access may need to be enabled for your account.
 `;
 
 export class ClinicoConnector implements PlatformConnector {

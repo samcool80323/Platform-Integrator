@@ -11,16 +11,52 @@ import { autoMapFields, inferFieldType } from "../base";
 const PODIUM_API_BASE = "https://api.podium.com/v4";
 
 const CREDENTIAL_GUIDE = `
-## How to get your Podium API credentials
+## How to connect Podium
 
-1. **Log in** to your Podium account at [podium.com](https://podium.com)
-2. Navigate to **Settings** → **Integrations** → **API**
-3. Click **"Create New Application"**
-4. Set the redirect URI to your Platform Integrator callback URL
-5. Copy the **Client ID** and **Client Secret**
-6. Enter them below to connect
+Podium uses a secure login (OAuth 2.0). You do NOT need to copy any keys — just click "Connect with Podium" and log in.
 
-> **Note:** You need admin access to your Podium account to create API credentials.
+**But first**, you need to register your Platform Integrator as an app in Podium. Here's exactly how:
+
+---
+
+### Step 1 — Log in to Podium
+1. Open your browser and go to **https://app.podium.com**
+2. Sign in with your Podium username and password
+3. ⚠️ You must be a **Podium Admin** — if you're not, ask your account owner
+
+---
+
+### Step 2 — Go to Developer Settings
+1. Click your **profile picture or company name** in the top-right corner
+2. Select **"Settings"** from the dropdown
+3. In the left sidebar, scroll down and click **"Integrations"**
+4. Then click **"API"** or **"Developer"**
+
+---
+
+### Step 3 — Create a New App
+1. Click **"Create New Application"** (or **"+ New App"**)
+2. Fill in the form:
+   - **App Name:** Platform Integrator
+   - **Redirect URI:** paste exactly this:
+     \`https://platform-integrator-production.up.railway.app/api/connectors/podium/oauth/callback\`
+3. Click **"Save"** or **"Create"**
+
+---
+
+### Step 4 — Copy your Client ID and Client Secret
+After saving, Podium will show you:
+- **Client ID** — looks like: \`abc123def456...\`
+- **Client Secret** — looks like: \`xyz789...\` (treat this like a password!)
+
+Go to **Platform Integrator Settings → Connectors** and enter these two values for Podium.
+
+---
+
+### Step 5 — Connect!
+Come back here and click **"Connect with Podium"**. You'll be taken to the Podium login page. Sign in and approve the connection.
+
+> **Stuck?** Make sure the Redirect URI is copied exactly — even a single extra space will break it.
 `;
 
 export class PodiumConnector implements PlatformConnector {

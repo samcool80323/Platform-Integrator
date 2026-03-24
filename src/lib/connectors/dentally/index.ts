@@ -12,12 +12,43 @@ const DENTALLY_API_BASE = "https://api.dentally.co/v1";
 const CREDENTIAL_GUIDE = `
 ## How to get your Dentally API key
 
-1. **Log in** to your Dentally account
-2. Navigate to **Settings** → **Integrations** → **API Access**
-3. Click **"Generate API Key"**
-4. Copy the API key and enter it below
+---
 
-> **Note:** You need practice admin access to generate API keys.
+### Step 1 — Log in to Dentally
+1. Open your browser and go to **https://app.dentally.co**
+2. Enter your email and password
+3. ⚠️ You must be logged in as a **Practice Admin** — regular staff accounts cannot generate API keys. If you are not the admin, ask your practice manager to do these steps.
+
+---
+
+### Step 2 — Open Settings
+1. Look at the **top right corner** of your screen — you'll see your practice name or a profile icon
+2. Click on it
+3. A dropdown will appear — click **"Settings"**
+
+---
+
+### Step 3 — Go to API Access
+1. Inside Settings, look at the **left sidebar menu**
+2. Click **"Integrations"**
+3. Then click **"API Access"**
+   - If you don't see this option, you may not have admin permissions
+
+---
+
+### Step 4 — Generate a New API Key
+1. Click the **"Generate API Key"** button (it may also say **"New API Key"**)
+2. Give it a name so you remember what it's for — e.g., **"GHL Migration"**
+3. Click **"Generate"** or **"Confirm"**
+
+---
+
+### Step 5 — Copy and paste your API key
+1. Your API key will appear — it looks like a long string of random characters, e.g.: \`eyJhbGci...\`
+2. **Copy it immediately!** Dentally may only show it once.
+3. Paste it into the **"API Key"** field below
+
+> **Tip:** If you lose the key, you can always generate a new one from the same screen.
 `;
 
 export class DentallyConnector implements PlatformConnector {

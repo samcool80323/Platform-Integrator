@@ -9,15 +9,41 @@ import { inferFieldType } from "../base";
 const MONDAY_API_URL = "https://api.monday.com/v2";
 
 const CREDENTIAL_GUIDE = `
-## How to get your Monday.com API token
+## How to get your Monday.com API Token and Board ID
 
-1. **Log in** to your Monday.com account
-2. Click your **profile picture** (bottom left)
-3. Select **Developers** → **My Access Tokens**
-4. Copy the **API Token**
-5. Enter it below
+You'll need two things: an **API Token** and your **Board ID**.
 
-> **Tip:** You can also create a more limited token via the **Apps** section if you prefer scoped access.
+---
+
+### Step 1 — Log in to Monday.com
+1. Open your browser and go to **https://monday.com**
+2. Sign in with your email and password
+
+---
+
+### Step 2 — Get your API Token
+1. Look at the **bottom-left corner** of your screen — click your **profile picture** (your initials or photo)
+2. A menu appears — click **"Developers"**
+3. A new page opens — click **"My Access Tokens"** in the left sidebar
+4. You'll see a token listed — click **"Show"** or **"Copy"** to copy it
+5. It looks like: \`eyJhbGciOiJIUzI1NiJ9...\` (a long string starting with "eyJ")
+6. Paste it into the **"API Token"** field below
+
+> **Can't find Developers?** Try clicking your profile picture → **"Admin"** → **"API"** instead.
+
+---
+
+### Step 3 — Get your Board ID
+The Board ID is the number in the URL when you open your board.
+
+1. Go back to your Monday.com workspace
+2. Click on the **board** you want to import contacts from (e.g., "Leads", "Patients", "Clients")
+3. Look at your browser's address bar — the URL will look like:
+   \`https://mycompany.monday.com/boards/1234567890\`
+4. The number at the end (e.g., **1234567890**) is your **Board ID**
+5. Copy that number and paste it into the **"Board ID"** field below
+
+> **Which board should I pick?** Choose the board that has your contact or lead information — names, phone numbers, emails, etc.
 `;
 
 export class MondayConnector implements PlatformConnector {

@@ -3,6 +3,12 @@ import { PodiumConnector } from "./podium";
 import { DentallyConnector } from "./dentally";
 import { MondayConnector } from "./monday";
 import { ClinicoConnector } from "./clinico";
+import { HubSpotConnector } from "./hubspot";
+import { ActiveCampaignConnector } from "./activecampaign";
+import { PipedriveConnector } from "./pipedrive";
+import { JaneConnector } from "./jane";
+import { AcuityConnector } from "./acuity";
+import { NookalConnector } from "./nookal";
 
 const connectors = new Map<string, PlatformConnector>();
 
@@ -10,11 +16,21 @@ function register(connector: PlatformConnector) {
   connectors.set(connector.id, connector);
 }
 
-// Register all connectors
-register(new PodiumConnector());
-register(new DentallyConnector());
-register(new MondayConnector());
-register(new ClinicoConnector());
+// ── Clinic / Healthcare ──────────────────────────────────────────────────────
+register(new DentallyConnector());    // Dental practice management (UK)
+register(new ClinicoConnector());     // Allied health / physio (AU/NZ/CA)
+register(new JaneConnector());        // Health clinic management (AU/CA/UK)
+register(new NookalConnector());      // Allied health practice management (AU)
+register(new AcuityConnector());      // Appointment scheduling (all industries)
+
+// ── General CRM ─────────────────────────────────────────────────────────────
+register(new HubSpotConnector());     // Popular free/paid CRM
+register(new PipedriveConnector());   // Sales-focused CRM
+register(new ActiveCampaignConnector()); // Email marketing + CRM
+register(new MondayConnector());      // Project / CRM boards
+
+// ── Review & Messaging ───────────────────────────────────────────────────────
+register(new PodiumConnector());      // Review & messaging platform (OAuth2)
 
 export function getConnector(id: string): PlatformConnector | undefined {
   return connectors.get(id);
