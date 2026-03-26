@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   CheckCircle2,
@@ -19,6 +19,8 @@ import {
   User,
   Trash2,
   RefreshCw,
+  Loader2,
+  KeyRound,
 } from "lucide-react";
 
 interface ConnectorDetail {
@@ -43,7 +45,6 @@ interface SavedAccount {
 
 interface StepSourceAuthProps {
   connectorId: string;
-  // Returns either a saved credentialId OR raw credentials for a new account
   onAuthenticated: (
     data: { credentialId: string; label: string } | { credentials: Record<string, string>; label: string }
   ) => void;
@@ -55,8 +56,8 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   session_expired: "Your OAuth session expired. Please try again.",
   invalid_state: "Security check failed. Please try again.",
   state_mismatch: "Security token mismatch. Please try again.",
-  token_exchange_failed: "Failed to exchange code for access token. Check your app credentials.",
-  not_configured: "OAuth credentials are not configured on the server. Contact your admin.",
+  token_exchange_failed: "Failed to exchange code for access token. Check your app credentials in Settings.",
+  not_configured: "OAuth credentials are not configured. Go to Settings to set up this connector first.",
   server_error: "An unexpected server error occurred during OAuth.",
   access_denied: "You denied access to the application.",
 };
@@ -70,7 +71,6 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [mode, setMode] = useState<"select" | "add">("select");
 
-  // New account form state
   const [credentials, setCredentials] = useState<Record<string, string>>({});
   const [label, setLabel] = useState("");
   const [testing, setTesting] = useState(false);
@@ -78,13 +78,11 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // OAuth state
   const [showManual, setShowManual] = useState(false);
   const [oauthStatus, setOauthStatus] = useState<"idle" | "fetching" | "done" | "error">("idle");
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [oauthAppConfigured, setOauthAppConfigured] = useState<boolean | null>(null);
 
-  // Load connector details
   useEffect(() => {
     fetch("/api/connectors")
       .then((r) => r.json())
@@ -100,14 +98,12 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
       });
   }, [connectorId]);
 
-  // Load saved accounts for this connector
   const loadSavedAccounts = useCallback(async () => {
     setLoadingAccounts(true);
     try {
       const res = await fetch(`/api/connected-accounts?connectorId=${connectorId}`);
       const data = await res.json();
       setSavedAccounts(data.accounts || []);
-      // If no saved accounts, jump straight to add mode
       if ((data.accounts || []).length === 0) setMode("add");
     } catch {
       setSavedAccounts([]);
@@ -120,7 +116,6 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
     loadSavedAccounts();
   }, [loadSavedAccounts]);
 
-  // Handle OAuth redirect back
   const fetchOAuthToken = useCallback(async () => {
     setOauthStatus("fetching");
     try {
@@ -193,7 +188,6 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
       });
       const data = await res.json();
       if (res.ok) {
-        // Continue with the saved credential ID
         onAuthenticated({ credentialId: data.account.id, label: data.account.label });
       } else {
         setSaveError(data.error || "Failed to save account");
@@ -212,7 +206,12 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
   }
 
   if (!connector || loadingAccounts) {
-    return <div className="py-12 text-center text-muted-foreground">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        Loading...
+      </div>
+    );
   }
 
   const isOAuth = connector.authConfig.type === "oauth2";
@@ -223,35 +222,49 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" onClick={onBack}>
-        <ChevronLeft className="mr-1 h-4 w-4" /> Back
+      <Button variant="ghost" size="sm" onClick={onBack} className="gap-1.5 text-muted-foreground hover:text-foreground">
+        <ChevronLeft className="h-4 w-4" /> Back to platform selection
       </Button>
 
       <Card>
         <CardHeader>
-          <CardTitle>Connect to {connector.name}</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <KeyRound className="h-5 w-5 text-muted-foreground" />
+            Connect to {connector.name}
+          </CardTitle>
+          <CardDescription>
+            {isOAuth
+              ? `Authorize access to ${connector.name} using OAuth. This securely connects without sharing your password.`
+              : `Enter your ${connector.name} API credentials below. These are securely encrypted and stored for future use.`}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
 
           {/* ── SAVED ACCOUNTS ── */}
           {mode === "select" && savedAccounts.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-foreground">
-                Select a saved {connector.name} account:
-              </p>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  Previously connected {connector.name} accounts
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Select an account to reuse it, or add a new one below.
+                </p>
+              </div>
+
               <div className="space-y-2">
                 {savedAccounts.map((account) => (
                   <div
                     key={account.id}
                     onClick={() => setSelectedAccountId(account.id)}
-                    className={`flex items-center justify-between rounded-lg border p-3 cursor-pointer transition-colors ${
+                    className={`flex items-center justify-between rounded-lg border p-4 cursor-pointer transition-all ${
                       selectedAccountId === account.id
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/50 hover:bg-muted/50"
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-border hover:border-primary/30 hover:bg-accent/50"
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
                         selectedAccountId === account.id ? "bg-primary text-primary-foreground" : "bg-muted"
                       }`}>
                         <User className="h-4 w-4" />
@@ -259,25 +272,25 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
                       <div>
                         <p className="text-sm font-medium">{account.label}</p>
                         <p className="text-xs text-muted-foreground">
-                          Added {new Date(account.createdAt).toLocaleDateString()}
+                          Added {new Date(account.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                           {account.lastValidated && ` · Last checked ${new Date(account.lastValidated).toLocaleDateString()}`}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       {account.isValid ? (
-                        <Badge variant="outline" className="text-xs text-green-600 border-green-500">
+                        <Badge variant="outline" className="text-xs text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700">
                           <CheckCircle2 className="h-3 w-3 mr-1" /> Valid
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-xs text-orange-500 border-orange-400">
+                        <Badge variant="outline" className="text-xs text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700">
                           <AlertCircle className="h-3 w-3 mr-1" /> Expired
                         </Badge>
                       )}
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDeleteAccount(account.id); }}
-                        className="text-muted-foreground hover:text-destructive transition-colors p-1"
-                        title="Remove account"
+                        className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded-md hover:bg-destructive/10"
+                        title="Remove this saved account"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -292,16 +305,17 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
                 className="flex items-center gap-2 text-sm text-primary hover:underline"
               >
                 <Plus className="h-4 w-4" />
-                Add a different {connector.name} account
+                Connect a different {connector.name} account
               </button>
 
-              <div className="flex gap-3 pt-2">
+              <div className="pt-2">
                 <Button
                   onClick={() => {
                     const account = savedAccounts.find((a) => a.id === selectedAccountId);
                     if (account) onAuthenticated({ credentialId: account.id, label: account.label });
                   }}
                   disabled={!selectedAccountId}
+                  className="gap-2"
                 >
                   Continue with selected account
                 </Button>
@@ -316,9 +330,9 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
                 <button
                   type="button"
                   onClick={() => setMode("select")}
-                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <ChevronLeft className="h-3 w-3" />
+                  <ChevronLeft className="h-3.5 w-3.5" />
                   Back to saved accounts
                 </button>
               )}
@@ -327,15 +341,15 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
               {isOAuth && (
                 <div className="space-y-4">
                   {scopes.length > 0 && (
-                    <div className="rounded-lg border bg-muted/40 p-4 space-y-2">
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        <ShieldCheck className="h-4 w-4 text-green-500" />
-                        Permissions this will request:
+                    <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                        Permissions requested (read-only):
                       </div>
-                      <ul className="space-y-1.5">
+                      <ul className="space-y-2">
                         {scopes.map((scope) => (
                           <li key={scope} className="flex items-start gap-2 text-sm">
-                            <Badge variant="secondary" className="mt-0.5 shrink-0 text-xs font-mono">{scope}</Badge>
+                            <Badge variant="secondary" className="mt-0.5 shrink-0 text-[11px] font-mono px-1.5">{scope}</Badge>
                             <span className="text-muted-foreground">{scopeDescriptions[scope] || scope}</span>
                           </li>
                         ))}
@@ -344,45 +358,47 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
                   )}
 
                   {oauthStatus === "fetching" && (
-                    <div className="flex items-center gap-2 rounded-md bg-blue-500/10 p-3 text-sm text-blue-500">
-                      <RefreshCw className="h-4 w-4 animate-spin shrink-0" />
+                    <div className="flex items-center gap-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-500/10 p-4 text-sm text-blue-600 dark:text-blue-400">
+                      <Loader2 className="h-4 w-4 animate-spin shrink-0" />
                       Completing connection with {connector.name}...
                     </div>
                   )}
                   {oauthStatus === "done" && testResult?.valid && (
-                    <div className="flex items-center gap-2 rounded-md bg-green-500/10 p-3 text-sm text-green-500">
+                    <div className="flex items-center gap-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-500/10 p-4 text-sm text-emerald-600 dark:text-emerald-400">
                       <CheckCircle2 className="h-4 w-4 shrink-0" />
-                      Connected to {connector.name}! Give this account a name to save it.
+                      Successfully connected to {connector.name}! Give this account a name below to save it.
                     </div>
                   )}
                   {oauthStatus === "error" && oauthError && (
-                    <div className="flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                    <div className="flex items-center gap-2 rounded-lg border border-red-200 dark:border-red-800 bg-red-500/10 p-4 text-sm text-red-600 dark:text-red-400">
                       <AlertCircle className="h-4 w-4 shrink-0" />
                       {oauthError}
                     </div>
                   )}
 
                   {oauthAppConfigured === false && (
-                    <div className="rounded-md border border-orange-500/40 bg-orange-500/10 p-4 space-y-2">
-                      <div className="flex items-center gap-2 text-sm font-medium text-orange-600 dark:text-orange-400">
+                    <div className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-500/10 p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-400">
                         <AlertCircle className="h-4 w-4 shrink-0" />
-                        {connector.name} app not configured yet
+                        {connector.name} OAuth app not configured
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        You need to set up your {connector.name} developer app credentials in Settings first.
+                      <p className="text-sm text-muted-foreground">
+                        Before you can connect via OAuth, you need to register your {connector.name} developer app
+                        and enter its credentials in Settings.
                       </p>
                       <Button asChild size="sm" variant="outline">
                         <a href={`/settings?oauth_setup_needed=${connectorId}`}>
-                          Go to Settings <ExternalLink className="ml-2 h-3 w-3" />
+                          Go to Settings
+                          <ExternalLink className="ml-2 h-3 w-3" />
                         </a>
                       </Button>
                     </div>
                   )}
 
                   {oauthStatus !== "done" && oauthAppConfigured !== false && (
-                    <Button asChild disabled={oauthStatus === "fetching"}>
+                    <Button asChild disabled={oauthStatus === "fetching"} className="gap-2">
                       <a href={`/api/connectors/${connectorId}/oauth/start`}>
-                        <ExternalLink className="mr-2 h-4 w-4" />
+                        <ExternalLink className="h-4 w-4" />
                         Connect with {connector.name}
                       </a>
                     </Button>
@@ -391,21 +407,26 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
                   <button
                     type="button"
                     onClick={() => setShowManual((p) => !p)}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showManual ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                    {showManual ? "Hide" : "Enter token manually instead"}
+                    {showManual ? "Hide manual token entry" : "Have a token already? Enter it manually"}
                   </button>
 
                   {showManual && (
-                    <div className="rounded-md border p-4 space-y-2">
-                      <Label>Access Token</Label>
-                      <Input
-                        type="password"
-                        placeholder="Paste your access token"
-                        value={credentials.accessToken || ""}
-                        onChange={(e) => setCredentials((p) => ({ ...p, accessToken: e.target.value }))}
-                      />
+                    <div className="rounded-lg border border-border p-4 space-y-3">
+                      <p className="text-xs text-muted-foreground">
+                        If you already have an access token (e.g. from a developer dashboard), paste it below.
+                      </p>
+                      <div className="space-y-2">
+                        <Label>Access Token</Label>
+                        <Input
+                          type="password"
+                          placeholder="Paste your access token here"
+                          value={credentials.accessToken || ""}
+                          onChange={(e) => setCredentials((p) => ({ ...p, accessToken: e.target.value }))}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -413,7 +434,13 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
 
               {/* API Key / Header Auth */}
               {!isOAuth && (
-                <div className="space-y-3">
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-border bg-muted/30 p-4">
+                    <p className="text-sm text-muted-foreground">
+                      Enter the API credentials for your client&apos;s {connector.name} account.
+                      These are typically found in the platform&apos;s settings or developer section.
+                    </p>
+                  </div>
                   {fields.map((field) => (
                     <div key={field.key} className="space-y-2">
                       <Label htmlFor={field.key}>{field.label}</Label>
@@ -425,7 +452,7 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
                         onChange={(e) => setCredentials((p) => ({ ...p, [field.key]: e.target.value }))}
                       />
                       {field.helpText && (
-                        <p className="text-xs text-muted-foreground/70">{field.helpText}</p>
+                        <p className="text-xs text-muted-foreground">{field.helpText}</p>
                       )}
                     </div>
                   ))}
@@ -434,51 +461,73 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
 
               {/* Account label */}
               {(hasCredentials || oauthStatus === "done") && (
-                <div className="space-y-2">
-                  <Label htmlFor="label">
-                    Account Name <span className="text-muted-foreground text-xs">(so you can reuse it later)</span>
-                  </Label>
-                  <Input
-                    id="label"
-                    placeholder={`e.g. Dr. Smith's ${connector.name}, ABC Clinic ${connector.name}`}
-                    value={label}
-                    onChange={(e) => setLabel(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    This account will be saved so you can reuse it for future migrations without re-entering credentials.
-                  </p>
+                <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="label">
+                      Account Name
+                    </Label>
+                    <Input
+                      id="label"
+                      placeholder={`e.g. Dr. Smith's ${connector.name}, ABC Clinic`}
+                      value={label}
+                      onChange={(e) => setLabel(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Give this connection a recognizable name. It will be saved so you can
+                      reuse it for future migrations without re-entering credentials.
+                    </p>
+                  </div>
                 </div>
               )}
 
               {/* Test result */}
               {testResult && (
-                <div className={`flex items-center gap-2 rounded-md p-3 text-sm ${
-                  testResult.valid ? "bg-green-500/10 text-green-500" : "bg-destructive/10 text-destructive"
+                <div className={`flex items-center gap-2 rounded-lg border p-4 text-sm ${
+                  testResult.valid
+                    ? "border-emerald-200 dark:border-emerald-800 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    : "border-red-200 dark:border-red-800 bg-red-500/10 text-red-600 dark:text-red-400"
                 }`}>
                   {testResult.valid
                     ? <CheckCircle2 className="h-4 w-4 shrink-0" />
                     : <AlertCircle className="h-4 w-4 shrink-0" />}
-                  {testResult.valid ? "Connection successful!" : testResult.error || "Connection failed"}
+                  {testResult.valid ? "Connection successful! The credentials are working." : testResult.error || "Connection failed. Please double-check your credentials."}
                 </div>
               )}
 
               {saveError && (
-                <div className="flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                <div className="flex items-center gap-2 rounded-lg border border-red-200 dark:border-red-800 bg-red-500/10 p-4 text-sm text-red-600 dark:text-red-400">
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   {saveError}
                 </div>
               )}
 
               {/* Actions */}
-              <div className="flex gap-3 pt-1">
+              <div className="flex flex-wrap gap-3 pt-1">
                 {(!isOAuth || showManual) && oauthStatus !== "done" && (
-                  <Button variant="outline" onClick={handleTest} disabled={testing || !hasCredentials}>
-                    {testing ? "Testing..." : "Test Connection"}
+                  <Button variant="outline" onClick={handleTest} disabled={testing || !hasCredentials} className="gap-2">
+                    {testing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Testing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4" />
+                        Test Connection
+                      </>
+                    )}
                   </Button>
                 )}
                 {(testResult?.valid || oauthStatus === "done") && (
-                  <Button onClick={handleSaveAndContinue} disabled={saving || !label.trim()}>
-                    {saving ? "Saving..." : "Save & Continue"}
+                  <Button onClick={handleSaveAndContinue} disabled={saving || !label.trim()} className="gap-2">
+                    {saving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save & Continue"
+                    )}
                   </Button>
                 )}
               </div>

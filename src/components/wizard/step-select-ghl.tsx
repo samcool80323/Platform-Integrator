@@ -2,8 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, AlertCircle, Building2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  ChevronLeft,
+  AlertCircle,
+  Building2,
+  Loader2,
+  MapPin,
+  ArrowRight,
+  ExternalLink,
+} from "lucide-react";
 
 interface SubAccount {
   id: string;
@@ -43,63 +51,87 @@ export function StepSelectGHL({ onSelect, onBack }: StepSelectGHLProps) {
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" onClick={onBack}>
-        <ChevronLeft className="mr-1 h-4 w-4" /> Back
+      <Button variant="ghost" size="sm" onClick={onBack} className="gap-1.5 text-muted-foreground hover:text-foreground">
+        <ChevronLeft className="h-4 w-4" /> Back to authentication
       </Button>
 
       <Card>
         <CardHeader>
           <CardTitle>Select GHL Sub-Account</CardTitle>
+          <CardDescription>
+            Choose which GoHighLevel location (sub-account) should receive the imported data.
+            This is the destination where contacts, conversations, and other records will be created.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {loading && (
-            <div className="py-8 text-center text-muted-foreground">
-              Loading sub-accounts...
+            <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Loading your GHL sub-accounts...
             </div>
           )}
 
           {error && (
-            <div className="flex items-center gap-2 rounded-md bg-destructive/10 p-4 text-sm text-destructive dark:bg-destructive/20">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              <div>
-                <p className="font-medium">{error}</p>
-                <p className="mt-1 text-destructive/80">
-                  Make sure you&apos;ve connected your GHL agency in{" "}
-                  <a href="/settings" className="underline">
-                    Settings
-                  </a>
-                </p>
+            <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-500/10 p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+                <div className="space-y-2">
+                  <p className="font-medium text-red-600 dark:text-red-400">{error}</p>
+                  <p className="text-sm text-muted-foreground">
+                    This usually means your GHL agency connection hasn&apos;t been set up yet, or the token has expired.
+                  </p>
+                  <Button asChild variant="outline" size="sm">
+                    <a href="/settings">
+                      Go to Settings to connect GHL
+                      <ExternalLink className="ml-2 h-3 w-3" />
+                    </a>
+                  </Button>
+                </div>
               </div>
             </div>
           )}
 
           {!loading && !error && accounts.length === 0 && (
-            <div className="py-8 text-center text-muted-foreground">
-              No sub-accounts found
+            <div className="py-12 text-center">
+              <Building2 className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+              <p className="font-medium text-foreground">No sub-accounts found</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Your GHL agency doesn&apos;t have any locations/sub-accounts, or the current
+                token doesn&apos;t have permission to list them.
+              </p>
             </div>
           )}
 
-          <div className="space-y-2">
-            {accounts.map((account) => (
-              <button
-                key={account.id}
-                onClick={() => onSelect(account.id, account.name)}
-                className="flex w-full items-center gap-3 rounded-lg border border-border p-4 text-left transition-colors hover:bg-muted/50 hover:text-foreground"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                  <Building2 className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">{account.name}</p>
-                  {(account.address || account.city) && (
-                    <p className="text-sm text-muted-foreground">
-                      {[account.address, account.city].filter(Boolean).join(", ")}
+          {!loading && !error && accounts.length > 0 && (
+            <div className="space-y-2">
+              <p className="mb-3 text-sm text-muted-foreground">
+                {accounts.length} sub-account{accounts.length !== 1 ? "s" : ""} found. Click one to continue.
+              </p>
+              {accounts.map((account) => (
+                <button
+                  key={account.id}
+                  onClick={() => onSelect(account.id, account.name)}
+                  className="group flex w-full items-center gap-4 rounded-lg border border-border p-4 text-left transition-all hover:border-primary/40 hover:bg-accent/50 hover:shadow-sm"
+                >
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-muted group-hover:bg-primary/10 transition-colors">
+                    <Building2 className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground group-hover:text-primary transition-colors">
+                      {account.name}
                     </p>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
+                    {(account.address || account.city) && (
+                      <p className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        {[account.address, account.city].filter(Boolean).join(", ")}
+                      </p>
+                    )}
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary transition-all group-hover:translate-x-0.5" />
+                </button>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

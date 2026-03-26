@@ -17,13 +17,15 @@ export async function DELETE(
   const { id } = await params;
 
   // Only delete if it belongs to this user
-  const deleted = await prisma.connectorCredential.deleteMany({
+  const record = await prisma.connectorCredential.findFirst({
     where: { id, userId: session.user.id },
   });
 
-  if (deleted.count === 0) {
+  if (!record) {
     return NextResponse.json({ error: "Account not found" }, { status: 404 });
   }
+
+  await prisma.connectorCredential.delete({ where: { id } });
 
   return NextResponse.json({ success: true });
 }

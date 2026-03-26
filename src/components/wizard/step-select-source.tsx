@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Users, Target, Calendar } from "lucide-react";
+import {
+  MessageSquare,
+  Users,
+  Target,
+  Calendar,
+  ArrowRight,
+  Loader2,
+} from "lucide-react";
 
 interface ConnectorInfo {
   id: string;
@@ -22,6 +29,13 @@ interface StepSelectSourceProps {
   onSelect: (connectorId: string, connectorName: string) => void;
 }
 
+const capabilityConfig = [
+  { key: "contacts" as const, label: "Contacts", icon: Users, color: "text-blue-600 dark:text-blue-400" },
+  { key: "conversations" as const, label: "Conversations", icon: MessageSquare, color: "text-violet-600 dark:text-violet-400" },
+  { key: "opportunities" as const, label: "Opportunities", icon: Target, color: "text-amber-600 dark:text-amber-400" },
+  { key: "appointments" as const, label: "Appointments", icon: Calendar, color: "text-emerald-600 dark:text-emerald-400" },
+];
+
 export function StepSelectSource({ onSelect }: StepSelectSourceProps) {
   const [connectors, setConnectors] = useState<ConnectorInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,61 +52,71 @@ export function StepSelectSource({ onSelect }: StepSelectSourceProps) {
 
   if (loading) {
     return (
-      <div className="py-12 text-center text-muted-foreground">
-        Loading connectors...
+      <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        Loading available platforms...
+      </div>
+    );
+  }
+
+  if (connectors.length === 0) {
+    return (
+      <div className="py-16 text-center text-muted-foreground">
+        <p className="font-medium">No connectors available</p>
+        <p className="mt-1 text-sm">Please contact support if this seems wrong.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <p className="text-muted-foreground">
-        Select the platform your client is migrating from:
+      <p className="text-sm text-muted-foreground">
+        Click on the platform your client is currently using. We&apos;ll pull their data and import it into GoHighLevel.
       </p>
-      <div className="grid gap-4 md:grid-cols-2">
-        {connectors.map((connector) => (
-          <Card
-            key={connector.id}
-            className="cursor-pointer transition-all hover:border-primary/50 hover:shadow-md"
-            onClick={() => onSelect(connector.id, connector.name)}
-          >
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-lg font-bold text-muted-foreground">
-                  {connector.name[0]}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {connectors.map((connector) => {
+          const activeCapabilities = capabilityConfig.filter(
+            (c) => connector.capabilities[c.key]
+          );
+          return (
+            <Card
+              key={connector.id}
+              className="group cursor-pointer border-border transition-all duration-150 hover:border-primary/40 hover:shadow-md hover:shadow-primary/5"
+              onClick={() => onSelect(connector.id, connector.name)}
+            >
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted text-base font-bold text-muted-foreground">
+                      {connector.name[0]}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                        {connector.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                        {connector.description}
+                      </p>
+                    </div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground/30 transition-all group-hover:text-primary group-hover:translate-x-0.5" />
                 </div>
-                <CardTitle className="text-lg">{connector.name}</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-3 text-sm text-muted-foreground">
-                {connector.description}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {connector.capabilities.contacts && (
-                  <Badge variant="secondary" className="text-xs">
-                    <Users className="mr-1 h-3 w-3" /> Contacts
-                  </Badge>
-                )}
-                {connector.capabilities.conversations && (
-                  <Badge variant="secondary" className="text-xs">
-                    <MessageSquare className="mr-1 h-3 w-3" /> Conversations
-                  </Badge>
-                )}
-                {connector.capabilities.opportunities && (
-                  <Badge variant="secondary" className="text-xs">
-                    <Target className="mr-1 h-3 w-3" /> Opportunities
-                  </Badge>
-                )}
-                {connector.capabilities.appointments && (
-                  <Badge variant="secondary" className="text-xs">
-                    <Calendar className="mr-1 h-3 w-3" /> Appointments
-                  </Badge>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {activeCapabilities.map((cap) => (
+                    <Badge
+                      key={cap.key}
+                      variant="secondary"
+                      className="text-[11px] font-normal gap-1 px-2 py-0.5"
+                    >
+                      <cap.icon className={`h-3 w-3 ${cap.color}`} />
+                      {cap.label}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
