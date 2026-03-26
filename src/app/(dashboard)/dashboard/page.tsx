@@ -57,13 +57,13 @@ export default async function DashboardPage() {
           title="Total"
           value={stats.total}
           icon={Layers}
-          accentClass="bg-violet-500/10 text-violet-600 dark:text-violet-400"
+          accentClass="bg-zinc-500/10 text-zinc-700 dark:text-zinc-400"
         />
         <StatCard
           title="Running"
           value={stats.running}
           icon={Loader2}
-          accentClass="bg-orange-500/10 text-orange-600 dark:text-orange-400"
+          accentClass="bg-zinc-500/8 text-zinc-600 dark:text-zinc-400"
         />
         <StatCard
           title="Completed"
@@ -104,8 +104,8 @@ export default async function DashboardPage() {
                     href={`/migrations/${m.id}`}
                     className="group flex items-center gap-4 rounded-xl border border-border p-4 transition-all duration-200 hover:shadow-card-hover hover:border-primary/20"
                   >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10">
-                      <ArrowRightLeft className="h-4 w-4 text-violet-500" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-500/10">
+                      <ArrowRightLeft className="h-4 w-4 text-zinc-600" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -122,7 +122,7 @@ export default async function DashboardPage() {
                           <div className="flex items-center gap-1.5">
                             <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
                               <div
-                                className="h-full rounded-full bg-violet-500 transition-all"
+                                className="h-full rounded-full bg-zinc-600 transition-all"
                                 style={{ width: `${progress}%` }}
                               />
                             </div>
@@ -152,7 +152,7 @@ export default async function DashboardPage() {
 function EmptyState() {
   return (
     <div className="py-20 text-center">
-      <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary shadow-lg shadow-violet-500/20">
+      <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary shadow-lg shadow-sm">
         <ArrowRightLeft className="h-7 w-7 text-white" />
       </div>
       <h3 className="text-lg font-bold text-foreground tracking-tight">
@@ -207,7 +207,7 @@ function StatCard({
 function StatusPill({ status }: { status: string }) {
   const config: Record<string, { label: string; className: string }> = {
     PENDING: { label: "Pending", className: "bg-muted text-muted-foreground" },
-    RUNNING: { label: "Running", className: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
+    RUNNING: { label: "Running", className: "bg-zinc-500/8 text-zinc-600 dark:text-zinc-400" },
     COMPLETED: { label: "Done", className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
     COMPLETED_WITH_ERRORS: { label: "Partial", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
     FAILED: { label: "Failed", className: "bg-red-500/10 text-red-600 dark:text-red-400" },

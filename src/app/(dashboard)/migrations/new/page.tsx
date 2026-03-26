@@ -119,7 +119,7 @@ export default function NewMigrationPage() {
                 <div
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all duration-200 ${
                     done
-                      ? "gradient-primary text-white shadow-sm shadow-violet-500/20"
+                      ? "gradient-primary text-white shadow-sm shadow-sm"
                       : active
                         ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
                         : "bg-muted text-muted-foreground"

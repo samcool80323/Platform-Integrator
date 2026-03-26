@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ArrowRightLeft, Users, Zap, Shield, ArrowRight } from "lucide-react";
+import { ArrowRightLeft, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -40,145 +40,102 @@ export default function LoginPage() {
         }
       }
 
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
+      const result = await signIn("credentials", { email, password, redirect: false });
 
       if (result?.error) {
-        setError("Invalid email or password. Please try again.");
+        setError("Invalid email or password.");
         setLoading(false);
         return;
       }
 
       router.push("/dashboard");
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError("Something went wrong.");
       setLoading(false);
     }
   }
 
   return (
     <div className="relative flex min-h-screen items-center justify-center gradient-hero overflow-hidden">
-      {/* Decorative blobs */}
-      <div className="pointer-events-none absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-violet-600/20 blur-[120px]" />
-      <div className="pointer-events-none absolute -bottom-40 -left-40 h-[400px] w-[400px] rounded-full bg-orange-500/10 blur-[100px]" />
+      {/* Subtle ambient light */}
+      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-[600px] w-[600px] rounded-full bg-blue-500/[0.03] blur-[120px]" />
 
-      <div className="absolute right-4 top-4 z-10">
+      <div className="absolute right-5 top-5 z-10">
         <ThemeToggle />
       </div>
 
-      <div className="relative z-10 w-full max-w-[460px] px-4">
+      <div className="relative z-10 w-full max-w-[420px] px-5">
         {/* Logo */}
-        <div className="mb-10 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl gradient-primary shadow-lg shadow-violet-500/30">
-            <ArrowRightLeft className="h-6 w-6 text-white" />
+        <div className="mb-12 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 border border-white/10 glass">
+            <ArrowRightLeft className="h-5 w-5 text-white/80" />
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
+          <h1 className="text-xl font-semibold text-white tracking-tight">
             Platform Integrator
           </h1>
-          <p className="mt-1 text-violet-200/60 text-sm">
-            CRM data migration for GoHighLevel
+          <p className="mt-1 text-sm text-white/30">
+            CRM migration for GoHighLevel
           </p>
         </div>
 
-        {/* Form card */}
-        <div className="glass rounded-3xl border border-white/10 p-8 shadow-2xl">
-          <div className="mb-6 text-center">
-            <h2 className="text-xl font-bold text-foreground">
-              {isRegister ? "Create your account" : "Welcome back"}
+        {/* Form */}
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-8 glass">
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-white tracking-tight">
+              {isRegister ? "Create account" : "Welcome back"}
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {isRegister
-                ? "Get started in under a minute"
-                : "Sign in to continue where you left off"}
+            <p className="mt-1 text-sm text-white/40">
+              {isRegister ? "Get started in under a minute" : "Sign in to continue"}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {isRegister && (
               <div className="space-y-1.5">
-                <Label htmlFor="name" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Full Name
-                </Label>
-                <Input id="name" name="name" placeholder="John Smith" required />
+                <Label htmlFor="name" className="text-xs font-medium text-white/50">Name</Label>
+                <Input id="name" name="name" placeholder="John Smith" required
+                  className="bg-white/[0.06] border-white/[0.08] text-white placeholder:text-white/25 focus:border-white/20 focus:ring-white/10" />
               </div>
             )}
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Email
-              </Label>
-              <Input id="email" name="email" type="email" placeholder="you@agency.com" required />
+              <Label htmlFor="email" className="text-xs font-medium text-white/50">Email</Label>
+              <Input id="email" name="email" type="email" placeholder="you@agency.com" required
+                className="bg-white/[0.06] border-white/[0.08] text-white placeholder:text-white/25 focus:border-white/20 focus:ring-white/10" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Password
-              </Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder={isRegister ? "Min. 6 characters" : "Enter your password"}
-                required
-                minLength={6}
-              />
+              <Label htmlFor="password" className="text-xs font-medium text-white/50">Password</Label>
+              <Input id="password" name="password" type="password"
+                placeholder={isRegister ? "Min. 6 characters" : "Enter password"} required minLength={6}
+                className="bg-white/[0.06] border-white/[0.08] text-white placeholder:text-white/25 focus:border-white/20 focus:ring-white/10" />
             </div>
 
             {error && (
-              <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
+              <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-2.5 text-sm text-red-400">
                 {error}
               </div>
             )}
 
-            <Button type="submit" className="w-full h-12 text-[15px] gap-2" disabled={loading}>
-              {loading ? (
-                "Please wait..."
-              ) : (
-                <>
-                  {isRegister ? "Create Account" : "Sign In"}
-                  <ArrowRight className="h-4 w-4" />
-                </>
+            <Button type="submit" className="w-full h-11 gap-2 bg-white text-zinc-900 hover:bg-white/90" disabled={loading}>
+              {loading ? "Please wait..." : (
+                <>{isRegister ? "Create Account" : "Sign In"}<ArrowRight className="h-4 w-4" /></>
               )}
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              {isRegister ? "Already have an account?" : "Don't have an account?"}{" "}
-              <button
-                type="button"
-                onClick={() => { setIsRegister(!isRegister); setError(""); }}
-                className="font-semibold text-primary hover:underline"
-              >
-                {isRegister ? "Sign in" : "Create one"}
-              </button>
-            </p>
-          </div>
+          <p className="mt-6 text-center text-sm text-white/30">
+            {isRegister ? "Have an account?" : "No account?"}{" "}
+            <button type="button"
+              onClick={() => { setIsRegister(!isRegister); setError(""); }}
+              className="font-medium text-white/60 hover:text-white transition-colors">
+              {isRegister ? "Sign in" : "Create one"}
+            </button>
+          </p>
         </div>
 
-        {/* Feature highlights */}
-        <div className="mt-8 grid grid-cols-3 gap-4">
-          <FeatureChip icon={Users} label="10+ Platforms" />
-          <FeatureChip icon={Zap} label="Auto Mapping" />
-          <FeatureChip icon={Shield} label="Encrypted" />
-        </div>
+        <p className="mt-8 text-center text-[11px] text-white/15">
+          10+ platforms supported · Encrypted credentials · Auto field mapping
+        </p>
       </div>
-    </div>
-  );
-}
-
-function FeatureChip({
-  icon: Icon,
-  label,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-}) {
-  return (
-    <div className="flex flex-col items-center gap-1.5 rounded-xl border border-white/8 bg-white/5 px-3 py-3 text-center">
-      <Icon className="h-4 w-4 text-violet-300/70" />
-      <span className="text-[11px] font-medium text-violet-200/50">{label}</span>
     </div>
   );
 }

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   LayoutDashboard,
@@ -30,40 +29,32 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
 
   return (
     <div className="flex h-screen">
-      {/* Sidebar — always dark */}
+      {/* Sidebar — always dark, glass */}
       <aside
-        className="flex w-[260px] flex-col border-r"
+        className="flex w-[260px] flex-col glass"
         style={{
           background: "var(--sidebar-bg)",
-          borderColor: "var(--sidebar-border)",
+          borderRight: "1px solid var(--sidebar-border)",
         }}
       >
         {/* Logo */}
-        <div
-          className="flex h-[68px] items-center gap-3 px-5"
-          style={{ borderBottom: "1px solid var(--sidebar-border)" }}
-        >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-primary shadow-md shadow-violet-500/20">
-            <ArrowRightLeft className="h-4 w-4 text-white" />
+        <div className="flex h-16 items-center gap-3 px-5"
+          style={{ borderBottom: "1px solid var(--sidebar-border)" }}>
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 border border-white/[0.08]">
+            <ArrowRightLeft className="h-3.5 w-3.5 text-white/70" />
           </div>
           <div>
-            <p className="text-[13px] font-bold text-white leading-none tracking-tight">
+            <p className="text-[13px] font-semibold text-white/90 leading-none tracking-tight">
               Platform Integrator
             </p>
             <p className="text-[11px] mt-0.5" style={{ color: "var(--sidebar-heading)" }}>
-              CRM Migration Tool
+              CRM Migration
             </p>
           </div>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 pt-6 space-y-1">
-          <p
-            className="px-3 pb-3 text-[10px] font-bold uppercase tracking-[0.12em]"
-            style={{ color: "var(--sidebar-heading)" }}
-          >
-            Menu
-          </p>
+        <nav className="flex-1 px-3 pt-5 space-y-0.5">
           {navItems.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -73,10 +64,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-150",
-                  isActive
-                    ? "text-white"
-                    : "hover:text-white"
+                  "flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all duration-150",
                 )}
                 style={{
                   color: isActive ? "var(--sidebar-active-foreground)" : "var(--sidebar-foreground)",
@@ -89,27 +77,24 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
                   if (!isActive) e.currentTarget.style.background = "";
                 }}
               >
-                <item.icon className="h-[18px] w-[18px] shrink-0 opacity-70" />
-                <span>{item.label}</span>
-                {isActive && (
-                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-violet-400" />
-                )}
+                <item.icon className="h-4 w-4 opacity-60" />
+                {item.label}
               </Link>
             );
           })}
         </nav>
 
         {/* Bottom */}
-        <div className="p-3 space-y-2" style={{ borderTop: "1px solid var(--sidebar-border)" }}>
-          <div className="flex items-center justify-between px-2">
+        <div className="p-3 space-y-1" style={{ borderTop: "1px solid var(--sidebar-border)" }}>
+          <div className="flex items-center justify-between px-2 py-1">
             <ThemeToggle />
           </div>
-          <div className="flex items-center gap-3 rounded-xl px-3 py-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full gradient-primary text-[11px] font-bold text-white">
+          <div className="flex items-center gap-2.5 rounded-xl px-3 py-2">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/10 text-[11px] font-semibold text-white/70">
               {(user.name?.[0] || user.email?.[0] || "U").toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="truncate text-[13px] font-medium text-white/90 leading-none">
+              <p className="truncate text-[13px] font-medium text-white/80 leading-none">
                 {user.name || "User"}
               </p>
               <p className="truncate text-[11px] mt-0.5" style={{ color: "var(--sidebar-heading)" }}>
@@ -123,7 +108,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
             style={{ color: "var(--sidebar-foreground)" }}
             onMouseEnter={(e) => {
               e.currentTarget.style.color = "#f87171";
-              e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)";
+              e.currentTarget.style.background = "rgba(239, 68, 68, 0.08)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.color = "var(--sidebar-foreground)";

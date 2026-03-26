@@ -149,9 +149,9 @@ export default function MigrationDetailPage() {
         </CardHeader>
         <CardContent>
           <div className="max-h-[420px] space-y-0.5 overflow-y-auto rounded-xl p-4 font-mono text-xs leading-relaxed"
-            style={{ background: "#0a0914" }}>
+            style={{ background: "#09090b" }}>
             {logs.length === 0 ? (
-              <p className="text-violet-300/30 py-6 text-center">
+              <p className="text-white/10 py-6 text-center">
                 {isRunning ? "Waiting for log entries..." : "No logs for this migration."}
               </p>
             ) : (
@@ -159,15 +159,15 @@ export default function MigrationDetailPage() {
                 <div key={log.id} className={`py-0.5 ${
                   log.level === "ERROR" ? "text-red-400"
                     : log.level === "WARN" ? "text-amber-400"
-                      : "text-violet-200/70"
+                      : "text-zinc-300"
                 }`}>
-                  <span className="text-violet-300/25 select-none">
+                  <span className="text-white/8 select-none">
                     {new Date(log.timestamp).toLocaleTimeString()}{" "}
                   </span>
                   <span className={`mr-2 font-bold ${
                     log.level === "ERROR" ? "text-red-500"
                       : log.level === "WARN" ? "text-amber-500"
-                        : "text-violet-400/40"
+                        : "text-zinc-400/40"
                   }`}>
                     [{log.level.padEnd(5)}]
                   </span>
@@ -193,7 +193,7 @@ function ProgressCard({ title, icon: Icon, total, processed, failed, progress, i
       <CardContent className="p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Icon className="h-4 w-4 text-violet-500" />
+            <Icon className="h-4 w-4 text-zinc-600" />
             <span className="text-sm font-semibold text-foreground">{title}</span>
           </div>
           <span className="text-2xl font-bold text-foreground tracking-tight">{progress}%</span>
@@ -207,7 +207,7 @@ function ProgressCard({ title, icon: Icon, total, processed, failed, progress, i
           </span>
           <span>of {total}</span>
           {failed > 0 && <span className="flex items-center gap-1 text-red-500"><XCircle className="h-3 w-3" /> {failed} failed</span>}
-          {isRunning && <span className="flex items-center gap-1 text-violet-500 ml-auto"><Loader2 className="h-3 w-3 animate-spin" /> Running</span>}
+          {isRunning && <span className="flex items-center gap-1 text-zinc-600 ml-auto"><Loader2 className="h-3 w-3 animate-spin" /> Running</span>}
         </div>
       </CardContent>
     </Card>
@@ -217,7 +217,7 @@ function ProgressCard({ title, icon: Icon, total, processed, failed, progress, i
 function StatusPill({ status }: { status: string }) {
   const config: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; className: string }> = {
     PENDING: { label: "Pending", icon: Clock, className: "bg-muted text-muted-foreground" },
-    RUNNING: { label: "Running", icon: Loader2, className: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
+    RUNNING: { label: "Running", icon: Loader2, className: "bg-zinc-500/8 text-zinc-600 dark:text-zinc-400" },
     COMPLETED: { label: "Done", icon: CheckCircle2, className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
     COMPLETED_WITH_ERRORS: { label: "Partial", icon: AlertTriangle, className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
     FAILED: { label: "Failed", icon: XCircle, className: "bg-red-500/10 text-red-600 dark:text-red-400" },

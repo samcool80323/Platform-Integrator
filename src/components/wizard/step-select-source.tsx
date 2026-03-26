@@ -29,8 +29,8 @@ interface StepSelectSourceProps {
 }
 
 const capabilityConfig = [
-  { key: "contacts" as const, label: "Contacts", icon: Users, color: "text-violet-500" },
-  { key: "conversations" as const, label: "Conversations", icon: MessageSquare, color: "text-orange-500" },
+  { key: "contacts" as const, label: "Contacts", icon: Users, color: "text-zinc-600" },
+  { key: "conversations" as const, label: "Conversations", icon: MessageSquare, color: "text-zinc-500" },
   { key: "opportunities" as const, label: "Opportunities", icon: Target, color: "text-amber-500" },
   { key: "appointments" as const, label: "Appointments", icon: Calendar, color: "text-emerald-500" },
 ];
@@ -83,7 +83,7 @@ export function StepSelectSource({ onSelect }: StepSelectSourceProps) {
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/10 text-base font-bold text-violet-500 group-hover:gradient-primary group-hover:text-white transition-all duration-200">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-zinc-500/10 text-base font-bold text-zinc-600 group-hover:gradient-primary group-hover:text-white transition-all duration-200">
                     {connector.name[0]}
                   </div>
                   <div>

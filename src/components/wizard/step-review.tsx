@@ -92,7 +92,7 @@ export function StepReview({ state, onStart, onBack }: StepReviewProps) {
                 <CheckCircle2 className="h-3 w-3 text-emerald-500" />
                 {standardMappings.length} standard
               </Badge>
-              <Badge variant="secondary" className="gap-1.5 text-xs px-3 py-1 rounded-lg text-orange-600 dark:text-orange-400">
+              <Badge variant="secondary" className="gap-1.5 text-xs px-3 py-1 rounded-lg text-zinc-600 dark:text-zinc-400">
                 {customMappings.length} custom
               </Badge>
             </div>
@@ -103,7 +103,7 @@ export function StepReview({ state, onStart, onBack }: StepReviewProps) {
                   <ArrowRight className="h-3 w-3 text-muted-foreground/30 shrink-0" />
                   <span className="font-semibold text-foreground truncate min-w-0">{m.targetField.replace("custom:", "")}</span>
                   {m.targetType === "custom" && (
-                    <span className="inline-flex items-center rounded-md bg-orange-500/10 px-1.5 py-0.5 text-[10px] font-bold text-orange-500 shrink-0">new</span>
+                    <span className="inline-flex items-center rounded-md bg-zinc-500/8 px-1.5 py-0.5 text-[10px] font-bold text-zinc-500 shrink-0">new</span>
                   )}
                 </div>
               ))}

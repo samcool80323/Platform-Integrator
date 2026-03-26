@@ -239,8 +239,8 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10">
-              <KeyRound className="h-4 w-4 text-violet-500" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-500/10">
+              <KeyRound className="h-4 w-4 text-zinc-600" />
             </div>
             Connect to {connector.name}
           </CardTitle>
@@ -500,7 +500,7 @@ function StatusAlert({ variant, children }: { variant: "success" | "error" | "wa
     success: "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
     error: "border-red-500/20 bg-red-500/10 text-red-500",
     warning: "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    info: "border-violet-500/20 bg-violet-500/10 text-violet-600 dark:text-violet-400",
+    info: "border-zinc-600/20 bg-zinc-500/10 text-zinc-700 dark:text-zinc-400",
   };
   return (
     <div className={`flex items-start gap-2.5 rounded-xl border p-4 text-sm font-medium ${styles[variant]}`}>

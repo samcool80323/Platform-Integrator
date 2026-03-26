@@ -36,6 +36,7 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
   const [mappings, setMappings] = useState<FieldMapping[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showRawPayload, setShowRawPayload] = useState(false);
 
   useEffect(() => {
     fetch(`/api/connectors/${connectorId}/discover`, {
@@ -102,7 +103,6 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
   const standardMapped = mappings.filter((m) => m.targetType === "standard").length;
   const customMapped = mappings.filter((m) => m.targetType === "custom").length;
   const skipped = mappableFields.length - mappings.length;
-  const [showRawPayload, setShowRawPayload] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -124,7 +124,7 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
               <CheckCircle2 className="h-3 w-3 text-emerald-500" />
               {standardMapped} mapped
             </Badge>
-            <Badge variant="secondary" className="gap-1.5 text-xs px-3 py-1 rounded-lg text-orange-600 dark:text-orange-400">
+            <Badge variant="secondary" className="gap-1.5 text-xs px-3 py-1 rounded-lg text-zinc-600 dark:text-zinc-400">
               {customMapped} custom
             </Badge>
             <Badge variant="secondary" className="gap-1.5 text-xs px-3 py-1 rounded-lg">
@@ -217,7 +217,7 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
                         </span>
                       )}
                       {mapping?.targetType === "custom" && (
-                        <span className="inline-flex items-center rounded-lg bg-orange-500/10 px-2 py-0.5 text-[10px] font-bold text-orange-600 dark:text-orange-400">
+                        <span className="inline-flex items-center rounded-lg bg-zinc-500/8 px-2 py-0.5 text-[10px] font-bold text-zinc-600 dark:text-zinc-400">
                           custom
                         </span>
                       )}
