@@ -49,7 +49,14 @@ async function refreshAgencyToken(userId: string): Promise<string> {
   });
 
   if (!res.ok) {
-    throw new Error(`Failed to refresh GHL token: ${res.status}`);
+    let detail = "";
+    try {
+      const errBody = await res.json();
+      detail = ` — ${errBody.message || errBody.error || JSON.stringify(errBody)}`;
+    } catch {
+      // no JSON body
+    }
+    throw new Error(`Failed to refresh GHL token: ${res.status}${detail}`);
   }
 
   const data = await res.json();
@@ -85,7 +92,14 @@ export async function getLocationToken(
   });
 
   if (!res.ok) {
-    throw new Error(`Failed to get location token: ${res.status}`);
+    let detail = "";
+    try {
+      const errBody = await res.json();
+      detail = ` — ${errBody.message || errBody.error || JSON.stringify(errBody)}`;
+    } catch {
+      // no JSON body
+    }
+    throw new Error(`Failed to get location token: ${res.status}${detail}`);
   }
 
   const data = await res.json();

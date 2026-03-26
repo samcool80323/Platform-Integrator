@@ -48,6 +48,25 @@ export async function POST(
       ...autoMapped.filter((m) => !defaultKeys.has(m.sourceField)),
     ];
 
+    // Ensure every mapped field has a corresponding field entry.
+    // Default mappings (e.g. email) may reference fields not in the sample data.
+    const fieldKeys = new Set(fields.map((f) => f.key));
+    for (const mapping of mappings) {
+      if (!fieldKeys.has(mapping.sourceField) && mapping.sourceField !== "_samplePayload") {
+        fields.push({
+          key: mapping.sourceField,
+          label: mapping.sourceField
+            .replace(/[_-]/g, " ")
+            .replace(/\b\w/g, (c: string) => c.toUpperCase()),
+          type: mapping.targetField === "email" ? "email"
+            : mapping.targetField === "phone" ? "phone"
+            : "text",
+          isStandard: mapping.targetType === "standard",
+        });
+        fieldKeys.add(mapping.sourceField);
+      }
+    }
+
     return NextResponse.json({ fields, mappings });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Discovery failed";

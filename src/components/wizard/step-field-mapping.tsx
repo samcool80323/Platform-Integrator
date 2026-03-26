@@ -6,7 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ChevronLeft, ArrowRight, CheckCircle2, Loader2, AlertCircle, Info, Code, ChevronDown, ChevronUp, Plus, Tag, X } from "lucide-react";
+import {
+  ChevronLeft, ArrowRight, CheckCircle2, Loader2, AlertCircle,
+  Info, Code, ChevronDown, ChevronUp, Plus, Tag, X, Settings2, Search
+} from "lucide-react";
 import type { FieldSchema, FieldMapping } from "@/lib/universal-model/types";
 
 const GHL_STANDARD_FIELDS = [
@@ -47,6 +50,10 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
   const [extraTags, setExtraTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [contactSource, setContactSource] = useState(connectorId);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showSkipped, setShowSkipped] = useState(false);
+  const [searchFilter, setSearchFilter] = useState("");
+  const [addFieldName, setAddFieldName] = useState("");
 
   useEffect(() => {
     fetch(`/api/connectors/${connectorId}/discover`, {
@@ -85,6 +92,30 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
     }
   }
 
+  function addCustomField() {
+    const name = addFieldName.trim();
+    if (!name) return;
+    // Don't add duplicates
+    if (fields.some((f) => f.key === name)) {
+      setAddFieldName("");
+      return;
+    }
+    const newField: FieldSchema = {
+      key: name,
+      label: name.replace(/[_-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+      type: "text",
+      isStandard: false,
+    };
+    setFields((prev) => [...prev, newField]);
+    // Auto-map as custom
+    setMappings((prev) => [...prev, {
+      sourceField: name,
+      targetField: `custom:${name}`,
+      targetType: "custom" as const,
+    }]);
+    setAddFieldName("");
+  }
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-20 text-muted-foreground">
@@ -117,9 +148,22 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
   const samplePayloadField = fields.find((f) => f.key === "_samplePayload");
   const mappableFields = fields.filter((f) => f.key !== "_samplePayload");
 
+  // Split into mapped and skipped
+  const mappedFields = mappableFields.filter((f) => mappings.some((m) => m.sourceField === f.key));
+  const skippedFields = mappableFields.filter((f) => !mappings.some((m) => m.sourceField === f.key));
+
   const standardMapped = mappings.filter((m) => m.targetType === "standard").length;
   const customMappings = mappings.filter((m) => m.targetType === "custom");
-  const skipped = mappableFields.length - mappings.length;
+
+  // Filter by search
+  const filterField = (f: FieldSchema) => {
+    if (!searchFilter) return true;
+    const q = searchFilter.toLowerCase();
+    return f.label.toLowerCase().includes(q) || f.key.toLowerCase().includes(q);
+  };
+
+  const filteredMapped = mappedFields.filter(filterField);
+  const filteredSkipped = skippedFields.filter(filterField);
 
   return (
     <div className="space-y-4">
@@ -127,206 +171,304 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
         <ChevronLeft className="h-4 w-4" /> Back
       </Button>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Field Mapping</CardTitle>
-          <CardDescription>
-            Review how source fields map to GHL. Auto-matched where possible.
-            Change any mapping with the dropdown, or select &quot;Create Custom Field&quot; to auto-create it in GHL.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          {/* Summary */}
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary" className="gap-1.5 text-xs px-3 py-1 rounded-lg">
-              <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-              {standardMapped} standard
-            </Badge>
-            {customMappings.length > 0 && (
-              <Badge variant="outline" className="gap-1.5 text-xs px-3 py-1 rounded-lg">
-                <Plus className="h-3 w-3" />
-                {customMappings.length} custom (will be created)
-              </Badge>
-            )}
-            <Badge variant="secondary" className="gap-1.5 text-xs px-3 py-1 rounded-lg">
-              {skipped} skipped
-            </Badge>
-          </div>
-
-          {/* Custom fields that will be created */}
+      {/* Header + summary */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="text-lg font-bold text-foreground">Field Mapping</h3>
+          <p className="text-sm text-muted-foreground">Match source fields to GHL. Auto-matched where possible.</p>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          <Badge variant="secondary" className="gap-1 text-[11px] px-2.5 py-0.5 rounded-md">
+            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+            {standardMapped} standard
+          </Badge>
           {customMappings.length > 0 && (
-            <div className="rounded-xl border border-border bg-muted/50 p-4 space-y-2">
-              <p className="text-xs font-semibold text-foreground">Custom fields to be created in GHL:</p>
-              <div className="flex flex-wrap gap-1.5">
-                {customMappings.map((m) => (
-                  <span key={m.sourceField} className="inline-flex items-center rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground">
-                    {m.targetField.replace("custom:", "")}
-                  </span>
-                ))}
-              </div>
-            </div>
+            <Badge variant="outline" className="gap-1 text-[11px] px-2.5 py-0.5 rounded-md">
+              <Plus className="h-3 w-3" />
+              {customMappings.length} custom
+            </Badge>
           )}
+          <Badge variant="secondary" className="gap-1 text-[11px] px-2.5 py-0.5 rounded-md">
+            {skippedFields.length} skipped
+          </Badge>
+        </div>
+      </div>
 
-          <div className="flex items-start gap-2 rounded-xl bg-muted/50 border border-border p-3 text-xs text-muted-foreground">
-            <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-foreground" />
-            <span>
-              Contacts are auto-tagged <code className="rounded bg-secondary px-1 py-0.5 text-foreground text-[11px]">{connectorId}</code>.
-              Add more tags or set a contact source below.
+      {/* Search + add field */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Filter fields..."
+            value={searchFilter}
+            onChange={(e) => setSearchFilter(e.target.value)}
+            className="pl-9 h-9 text-sm"
+          />
+        </div>
+        <div className="flex gap-1.5">
+          <Input
+            placeholder="Add custom field..."
+            value={addFieldName}
+            onChange={(e) => setAddFieldName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomField(); } }}
+            className="w-44 h-9 text-sm"
+          />
+          <Button variant="outline" size="sm" onClick={addCustomField} disabled={!addFieldName.trim()} className="h-9 px-3">
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Mapped fields */}
+      <Card>
+        <CardHeader className="pb-3 pt-4 px-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-semibold">
+              Mapped Fields ({mappedFields.length})
+            </CardTitle>
+            <span className="text-[11px] text-muted-foreground">
+              {standardMapped} standard, {customMappings.length} custom
             </span>
           </div>
-
-          {/* Raw payload viewer */}
-          {samplePayloadField && samplePayloadField.sampleValues?.[0] && (
-            <div className="rounded-xl border border-border overflow-hidden">
-              <button type="button" onClick={() => setShowRawPayload((p) => !p)}
-                className="flex w-full items-center gap-2 px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:bg-muted/50 transition-colors">
-                <Code className="h-3.5 w-3.5" />
-                View raw sample contact from source
-                {showRawPayload ? <ChevronUp className="ml-auto h-3.5 w-3.5" /> : <ChevronDown className="ml-auto h-3.5 w-3.5" />}
-              </button>
-              {showRawPayload && (
-                <pre className="max-h-[480px] overflow-auto p-4 text-[11px] leading-relaxed font-mono"
-                  style={{ background: "#09090b", color: "#a1a1aa" }}>
-                  {samplePayloadField.sampleValues[0]}
-                </pre>
-              )}
-            </div>
-          )}
-
-          {/* Mapping table */}
-          <div className="space-y-2">
-            <div className="grid grid-cols-[1fr,auto,1fr,5rem] items-center gap-3 px-3 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-              <span>Source Field</span>
-              <span />
-              <span>GHL Field</span>
-              <span className="text-right">Status</span>
-            </div>
-
-            <div className="space-y-1.5">
-              {mappableFields.map((field) => {
-                const mapping = mappings.find((m) => m.sourceField === field.key);
+        </CardHeader>
+        <CardContent className="px-4 pb-4 pt-0">
+          {filteredMapped.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-3">No mapped fields{searchFilter ? " matching filter" : ""}.</p>
+          ) : (
+            <div className="space-y-1">
+              {/* Column header */}
+              <div className="grid grid-cols-[1fr,1.2fr,auto] items-center gap-2 px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <span>Source</span>
+                <span>GHL Target</span>
+                <span className="w-14 text-center">Status</span>
+              </div>
+              {filteredMapped.map((field) => {
+                const mapping = mappings.find((m) => m.sourceField === field.key)!;
                 return (
-                  <div key={field.key}
-                    className="grid grid-cols-[1fr,auto,1fr,5rem] items-center gap-3 rounded-xl border border-border p-3 transition-all hover:shadow-sm">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{field.label}</p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[10px] text-muted-foreground font-mono">{field.type}</span>
-                        {field.sampleValues?.[0] && (
-                          <span className="truncate text-[10px] text-muted-foreground/60">
-                            e.g. {field.sampleValues[0]}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0" />
-
-                    {/* Fixed dark-mode select */}
-                    <select
-                      className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer [&_option]:bg-background [&_option]:text-foreground"
-                      value={mapping?.targetField || "skip"}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "skip") removeMapping(field.key);
-                        else updateMapping(field.key, val);
-                      }}
-                    >
-                      <option value="skip">-- Skip --</option>
-                      <optgroup label="Standard GHL Fields">
-                        {GHL_STANDARD_FIELDS.map((gf) => (
-                          <option key={gf.key} value={gf.key}>{gf.label}</option>
-                        ))}
-                      </optgroup>
-                      <option value={`custom:${field.key}`}>+ Create Custom Field</option>
-                    </select>
-
-                    <div className="text-right">
-                      {mapping?.targetType === "standard" && (
-                        <span className="inline-flex items-center rounded-lg bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                          mapped
-                        </span>
-                      )}
-                      {mapping?.targetType === "custom" && (
-                        <span className="inline-flex items-center rounded-lg border border-border px-2 py-0.5 text-[10px] font-bold text-foreground">
-                          + custom
-                        </span>
-                      )}
-                      {!mapping && (
-                        <span className="inline-flex items-center rounded-lg bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
-                          skip
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                  <MappingRow
+                    key={field.key}
+                    field={field}
+                    mapping={mapping}
+                    connectorId={connectorId}
+                    onUpdate={updateMapping}
+                    onRemove={removeMapping}
+                  />
                 );
               })}
             </div>
-          </div>
+          )}
+        </CardContent>
+      </Card>
 
-          {/* Extra settings: tags and source */}
-          <div className="rounded-xl border border-border p-5 space-y-5">
-            <p className="text-sm font-semibold text-foreground">Additional Settings</p>
+      {/* Skipped fields (collapsible) */}
+      {skippedFields.length > 0 && (
+        <div className="rounded-xl border border-border overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowSkipped((p) => !p)}
+            className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted/50 transition-colors"
+          >
+            Skipped Fields ({skippedFields.length})
+            {showSkipped ? <ChevronUp className="ml-auto h-3.5 w-3.5" /> : <ChevronDown className="ml-auto h-3.5 w-3.5" />}
+          </button>
+          {showSkipped && (
+            <div className="px-4 pb-4 space-y-1">
+              <p className="text-[11px] text-muted-foreground pb-2">
+                These fields won&apos;t be imported. Change the dropdown to map them.
+              </p>
+              {/* Column header */}
+              <div className="grid grid-cols-[1fr,1.2fr,auto] items-center gap-2 px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <span>Source</span>
+                <span>GHL Target</span>
+                <span className="w-14 text-center">Status</span>
+              </div>
+              {filteredSkipped.map((field) => (
+                <MappingRow
+                  key={field.key}
+                  field={field}
+                  mapping={undefined}
+                  connectorId={connectorId}
+                  onUpdate={updateMapping}
+                  onRemove={removeMapping}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Raw payload viewer */}
+      {samplePayloadField && samplePayloadField.sampleValues?.[0] && (
+        <div className="rounded-xl border border-border overflow-hidden">
+          <button type="button" onClick={() => setShowRawPayload((p) => !p)}
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:bg-muted/50 transition-colors">
+            <Code className="h-3.5 w-3.5" />
+            Raw sample contact
+            {showRawPayload ? <ChevronUp className="ml-auto h-3.5 w-3.5" /> : <ChevronDown className="ml-auto h-3.5 w-3.5" />}
+          </button>
+          {showRawPayload && (
+            <pre className="max-h-[360px] overflow-auto p-4 text-[11px] leading-relaxed font-mono"
+              style={{ background: "#09090b", color: "#a1a1aa" }}>
+              {samplePayloadField.sampleValues[0]}
+            </pre>
+          )}
+        </div>
+      )}
+
+      {/* Additional Settings (collapsible) */}
+      <div className="rounded-xl border border-border overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowSettings((p) => !p)}
+          className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors"
+        >
+          <Settings2 className="h-4 w-4 text-muted-foreground" />
+          Tags & Source
+          {extraTags.length > 0 && (
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 rounded-md ml-1">
+              {extraTags.length} tag{extraTags.length !== 1 ? "s" : ""}
+            </Badge>
+          )}
+          {showSettings ? <ChevronUp className="ml-auto h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="ml-auto h-3.5 w-3.5 text-muted-foreground" />}
+        </button>
+        {showSettings && (
+          <div className="px-4 pb-4 space-y-4 border-t border-border pt-4">
+            <div className="flex items-start gap-2 rounded-lg bg-muted/50 border border-border p-2.5 text-xs text-muted-foreground">
+              <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-foreground" />
+              <span>
+                Contacts are auto-tagged <code className="rounded bg-secondary px-1 py-0.5 text-foreground text-[11px]">{connectorId}</code>.
+                Add more tags or set a custom source below.
+              </span>
+            </div>
 
             {/* Custom tags */}
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground">Extra Tags (added to every contact)</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Extra Tags</Label>
               <div className="flex gap-2">
                 <Input
                   placeholder="e.g. imported, Q1-2026"
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
-                  className="flex-1"
+                  className="flex-1 h-9 text-sm"
                 />
-                <Button variant="outline" size="sm" onClick={addTag} disabled={!tagInput.trim()}>
+                <Button variant="outline" size="sm" onClick={addTag} disabled={!tagInput.trim()} className="h-9">
                   <Plus className="h-3.5 w-3.5" />
                 </Button>
               </div>
               {extraTags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {extraTags.map((tag) => (
-                    <span key={tag} className="inline-flex items-center gap-1 rounded-lg border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
-                      <Tag className="h-3 w-3 text-muted-foreground" />
+                    <span key={tag} className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+                      <Tag className="h-2.5 w-2.5 text-muted-foreground" />
                       {tag}
                       <button onClick={() => setExtraTags((p) => p.filter((t) => t !== tag))} className="text-muted-foreground hover:text-foreground ml-0.5">
-                        <X className="h-3 w-3" />
+                        <X className="h-2.5 w-2.5" />
                       </button>
                     </span>
                   ))}
                 </div>
               )}
-              <p className="text-[11px] text-muted-foreground">
-                <code className="rounded bg-secondary px-1 py-0.5 text-[10px]">{connectorId}</code> is always added automatically.
-              </p>
             </div>
 
             {/* Contact source */}
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground">Contact Source (GHL source field)</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Contact Source</Label>
               <Input
                 placeholder="e.g. Podium Import"
                 value={contactSource}
                 onChange={(e) => setContactSource(e.target.value)}
+                className="h-9 text-sm"
               />
               <p className="text-[11px] text-muted-foreground">
-                Sets the &quot;Source&quot; field on each contact in GHL. Helps track where leads came from.
+                Sets the &quot;Source&quot; field on each contact in GHL.
               </p>
             </div>
           </div>
+        )}
+      </div>
 
-          {/* Footer */}
-          <div className="flex items-center justify-between border-t border-border pt-5">
-            <p className="text-sm text-muted-foreground">
-              {mappings.length} of {mappableFields.length} fields will be imported
-            </p>
-            <Button onClick={() => onConfirm(fields, mappings, extraTags, contactSource)} className="gap-2">
-              Confirm Mapping
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Footer */}
+      <div className="flex items-center justify-between pt-2">
+        <p className="text-sm text-muted-foreground">
+          {mappings.length} of {mappableFields.length} fields will be imported
+        </p>
+        <Button onClick={() => onConfirm(fields, mappings, extraTags, contactSource)} className="gap-2">
+          Confirm Mapping
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Compact mapping row ── */
+
+function MappingRow({
+  field,
+  mapping,
+  connectorId,
+  onUpdate,
+  onRemove,
+}: {
+  field: FieldSchema;
+  mapping: FieldMapping | undefined;
+  connectorId: string;
+  onUpdate: (sourceField: string, targetField: string) => void;
+  onRemove: (sourceField: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-[1fr,1.2fr,auto] items-center gap-2 rounded-lg border border-border/60 px-2 py-2 transition-all hover:border-border">
+      {/* Source */}
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-foreground truncate">{field.label}</p>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] text-muted-foreground font-mono">{field.type}</span>
+          {field.sampleValues?.[0] && (
+            <span className="truncate text-[10px] text-muted-foreground/60">
+              e.g. {field.sampleValues[0]}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Target select */}
+      <select
+        className="w-full rounded-lg border border-input bg-background px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer [&_option]:bg-background [&_option]:text-foreground"
+        value={mapping?.targetField || "skip"}
+        onChange={(e) => {
+          const val = e.target.value;
+          if (val === "skip") onRemove(field.key);
+          else onUpdate(field.key, val);
+        }}
+      >
+        <option value="skip">-- Skip --</option>
+        <optgroup label="Standard GHL Fields">
+          {GHL_STANDARD_FIELDS.map((gf) => (
+            <option key={gf.key} value={gf.key}>{gf.label}</option>
+          ))}
+        </optgroup>
+        <option value={`custom:${field.key}`}>+ Create Custom Field</option>
+      </select>
+
+      {/* Status badge */}
+      <div className="w-14 text-center">
+        {mapping?.targetType === "standard" && (
+          <span className="inline-flex items-center rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+            mapped
+          </span>
+        )}
+        {mapping?.targetType === "custom" && (
+          <span className="inline-flex items-center rounded-md border border-border px-1.5 py-0.5 text-[10px] font-bold text-foreground">
+            custom
+          </span>
+        )}
+        {!mapping && (
+          <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+            skip
+          </span>
+        )}
+      </div>
     </div>
   );
 }
