@@ -51,38 +51,38 @@ export function StepSelectGHL({ onSelect, onBack }: StepSelectGHLProps) {
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" onClick={onBack} className="gap-1.5 text-muted-foreground hover:text-foreground">
-        <ChevronLeft className="h-4 w-4" /> Back to authentication
+      <Button variant="ghost" size="sm" onClick={onBack} className="gap-1.5">
+        <ChevronLeft className="h-4 w-4" /> Back
       </Button>
 
       <Card>
         <CardHeader>
           <CardTitle>Select GHL Sub-Account</CardTitle>
           <CardDescription>
-            Choose which GoHighLevel location (sub-account) should receive the imported data.
-            This is the destination where contacts, conversations, and other records will be created.
+            Choose which GoHighLevel location should receive the imported data.
+            Contacts, conversations, and other records will be created here.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {loading && (
-            <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Loading your GHL sub-accounts...
+            <div className="flex items-center justify-center gap-2.5 py-16 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              Loading sub-accounts...
             </div>
           )}
 
           {error && (
-            <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-500/10 p-4">
+            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-5">
               <div className="flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
                 <div className="space-y-2">
-                  <p className="font-medium text-red-600 dark:text-red-400">{error}</p>
+                  <p className="font-semibold text-red-500">{error}</p>
                   <p className="text-sm text-muted-foreground">
-                    This usually means your GHL agency connection hasn&apos;t been set up yet, or the token has expired.
+                    This usually means your GHL connection isn&apos;t set up or the token expired.
                   </p>
                   <Button asChild variant="outline" size="sm">
                     <a href="/settings">
-                      Go to Settings to connect GHL
+                      Go to Settings
                       <ExternalLink className="ml-2 h-3 w-3" />
                     </a>
                   </Button>
@@ -92,12 +92,11 @@ export function StepSelectGHL({ onSelect, onBack }: StepSelectGHLProps) {
           )}
 
           {!loading && !error && accounts.length === 0 && (
-            <div className="py-12 text-center">
-              <Building2 className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
-              <p className="font-medium text-foreground">No sub-accounts found</p>
+            <div className="py-16 text-center">
+              <Building2 className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
+              <p className="font-semibold text-foreground">No sub-accounts found</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Your GHL agency doesn&apos;t have any locations/sub-accounts, or the current
-                token doesn&apos;t have permission to list them.
+                Your GHL agency has no locations, or the token lacks permission to list them.
               </p>
             </div>
           )}
@@ -105,19 +104,19 @@ export function StepSelectGHL({ onSelect, onBack }: StepSelectGHLProps) {
           {!loading && !error && accounts.length > 0 && (
             <div className="space-y-2">
               <p className="mb-3 text-sm text-muted-foreground">
-                {accounts.length} sub-account{accounts.length !== 1 ? "s" : ""} found. Click one to continue.
+                {accounts.length} location{accounts.length !== 1 ? "s" : ""} found. Click to continue.
               </p>
               {accounts.map((account) => (
                 <button
                   key={account.id}
                   onClick={() => onSelect(account.id, account.name)}
-                  className="group flex w-full items-center gap-4 rounded-lg border border-border p-4 text-left transition-all hover:border-primary/40 hover:bg-accent/50 hover:shadow-sm"
+                  className="group flex w-full items-center gap-4 rounded-xl border border-border bg-card p-4 text-left shadow-card transition-all duration-200 hover:shadow-card-hover hover:border-primary/30"
                 >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-muted group-hover:bg-primary/10 transition-colors">
-                    <Building2 className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 group-hover:gradient-primary group-hover:text-white transition-all duration-200">
+                    <Building2 className="h-5 w-5 text-violet-500 group-hover:text-white transition-colors" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground group-hover:text-primary transition-colors">
+                    <p className="font-semibold text-foreground tracking-tight">
                       {account.name}
                     </p>
                     {(account.address || account.city) && (
@@ -127,7 +126,7 @@ export function StepSelectGHL({ onSelect, onBack }: StepSelectGHLProps) {
                       </p>
                     )}
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary transition-all group-hover:translate-x-0.5" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground/20 group-hover:text-primary transition-all group-hover:translate-x-0.5" />
                 </button>
               ))}
             </div>

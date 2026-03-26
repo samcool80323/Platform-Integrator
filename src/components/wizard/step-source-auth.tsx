@@ -112,9 +112,7 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
     setLoadingAccounts(false);
   }, [connectorId]);
 
-  useEffect(() => {
-    loadSavedAccounts();
-  }, [loadSavedAccounts]);
+  useEffect(() => { loadSavedAccounts(); }, [loadSavedAccounts]);
 
   const fetchOAuthToken = useCallback(async () => {
     setOauthStatus("fetching");
@@ -174,10 +172,7 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
   }
 
   async function handleSaveAndContinue() {
-    if (!label.trim()) {
-      setSaveError("Please enter a name for this account");
-      return;
-    }
+    if (!label.trim()) { setSaveError("Please enter a name for this account"); return; }
     setSaving(true);
     setSaveError(null);
     try {
@@ -187,11 +182,8 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
         body: JSON.stringify({ connectorId, label, credentials }),
       });
       const data = await res.json();
-      if (res.ok) {
-        onAuthenticated({ credentialId: data.account.id, label: data.account.label });
-      } else {
-        setSaveError(data.error || "Failed to save account");
-      }
+      if (res.ok) onAuthenticated({ credentialId: data.account.id, label: data.account.label });
+      else setSaveError(data.error || "Failed to save account");
     } catch {
       setSaveError("Something went wrong saving the account");
     }
@@ -207,8 +199,8 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
 
   if (!connector || loadingAccounts) {
     return (
-      <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin" />
+      <div className="flex items-center justify-center gap-2.5 py-20 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
         Loading...
       </div>
     );
@@ -222,75 +214,69 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" onClick={onBack} className="gap-1.5 text-muted-foreground hover:text-foreground">
-        <ChevronLeft className="h-4 w-4" /> Back to platform selection
+      <Button variant="ghost" size="sm" onClick={onBack} className="gap-1.5">
+        <ChevronLeft className="h-4 w-4" /> Back
       </Button>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <KeyRound className="h-5 w-5 text-muted-foreground" />
+          <CardTitle className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10">
+              <KeyRound className="h-4 w-4 text-violet-500" />
+            </div>
             Connect to {connector.name}
           </CardTitle>
           <CardDescription>
             {isOAuth
-              ? `Authorize access to ${connector.name} using OAuth. This securely connects without sharing your password.`
-              : `Enter your ${connector.name} API credentials below. These are securely encrypted and stored for future use.`}
+              ? `Authorize access to ${connector.name} via OAuth. No password sharing needed.`
+              : `Enter your ${connector.name} API credentials. They're encrypted and saved for reuse.`}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
 
-          {/* ── SAVED ACCOUNTS ── */}
+          {/* Saved accounts */}
           {mode === "select" && savedAccounts.length > 0 && (
             <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-foreground">
-                  Previously connected {connector.name} accounts
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Select an account to reuse it, or add a new one below.
-                </p>
-              </div>
-
+              <p className="text-sm font-semibold text-foreground">
+                Previously connected accounts
+              </p>
               <div className="space-y-2">
                 {savedAccounts.map((account) => (
                   <div
                     key={account.id}
                     onClick={() => setSelectedAccountId(account.id)}
-                    className={`flex items-center justify-between rounded-lg border p-4 cursor-pointer transition-all ${
+                    className={`flex items-center justify-between rounded-xl border p-4 cursor-pointer transition-all duration-200 ${
                       selectedAccountId === account.id
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-border hover:border-primary/30 hover:bg-accent/50"
+                        ? "border-primary bg-primary/5 shadow-glow"
+                        : "border-border hover:border-primary/20 hover:shadow-card-hover"
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
-                        selectedAccountId === account.id ? "bg-primary text-primary-foreground" : "bg-muted"
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all ${
+                        selectedAccountId === account.id ? "gradient-primary text-white" : "bg-muted"
                       }`}>
                         <User className="h-4 w-4" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{account.label}</p>
+                        <p className="text-sm font-semibold">{account.label}</p>
                         <p className="text-xs text-muted-foreground">
                           Added {new Date(account.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                          {account.lastValidated && ` · Last checked ${new Date(account.lastValidated).toLocaleDateString()}`}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       {account.isValid ? (
-                        <Badge variant="outline" className="text-xs text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700">
-                          <CheckCircle2 className="h-3 w-3 mr-1" /> Valid
+                        <Badge variant="secondary" className="text-xs text-emerald-600 dark:text-emerald-400 gap-1 rounded-lg">
+                          <CheckCircle2 className="h-3 w-3" /> Valid
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-xs text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700">
-                          <AlertCircle className="h-3 w-3 mr-1" /> Expired
+                        <Badge variant="secondary" className="text-xs text-amber-600 dark:text-amber-400 gap-1 rounded-lg">
+                          <AlertCircle className="h-3 w-3" /> Expired
                         </Badge>
                       )}
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDeleteAccount(account.id); }}
-                        className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded-md hover:bg-destructive/10"
-                        title="Remove this saved account"
+                        className="text-muted-foreground hover:text-red-500 transition-colors p-1.5 rounded-lg hover:bg-red-500/10"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -298,58 +284,48 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
                   </div>
                 ))}
               </div>
-
               <button
                 type="button"
                 onClick={() => { setMode("add"); setSelectedAccountId(null); }}
-                className="flex items-center gap-2 text-sm text-primary hover:underline"
+                className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
               >
                 <Plus className="h-4 w-4" />
-                Connect a different {connector.name} account
+                Add a different account
               </button>
-
-              <div className="pt-2">
-                <Button
-                  onClick={() => {
-                    const account = savedAccounts.find((a) => a.id === selectedAccountId);
-                    if (account) onAuthenticated({ credentialId: account.id, label: account.label });
-                  }}
-                  disabled={!selectedAccountId}
-                  className="gap-2"
-                >
-                  Continue with selected account
-                </Button>
-              </div>
+              <Button
+                onClick={() => {
+                  const account = savedAccounts.find((a) => a.id === selectedAccountId);
+                  if (account) onAuthenticated({ credentialId: account.id, label: account.label });
+                }}
+                disabled={!selectedAccountId}
+              >
+                Continue with selected account
+              </Button>
             </div>
           )}
 
-          {/* ── ADD NEW ACCOUNT ── */}
+          {/* Add new account */}
           {mode === "add" && (
             <div className="space-y-5">
               {savedAccounts.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setMode("select")}
-                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                  Back to saved accounts
+                <button type="button" onClick={() => setMode("select")}
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <ChevronLeft className="h-3.5 w-3.5" /> Back to saved accounts
                 </button>
               )}
 
-              {/* OAuth2 flow */}
               {isOAuth && (
                 <div className="space-y-4">
                   {scopes.length > 0 && (
-                    <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
-                      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <div className="rounded-xl border border-border bg-secondary/50 p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                         <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                        Permissions requested (read-only):
+                        Permissions (read-only):
                       </div>
                       <ul className="space-y-2">
                         {scopes.map((scope) => (
                           <li key={scope} className="flex items-start gap-2 text-sm">
-                            <Badge variant="secondary" className="mt-0.5 shrink-0 text-[11px] font-mono px-1.5">{scope}</Badge>
+                            <Badge variant="secondary" className="mt-0.5 shrink-0 text-[11px] font-mono px-1.5 rounded-md">{scope}</Badge>
                             <span className="text-muted-foreground">{scopeDescriptions[scope] || scope}</span>
                           </li>
                         ))}
@@ -358,41 +334,37 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
                   )}
 
                   {oauthStatus === "fetching" && (
-                    <div className="flex items-center gap-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-500/10 p-4 text-sm text-blue-600 dark:text-blue-400">
+                    <StatusAlert variant="info">
                       <Loader2 className="h-4 w-4 animate-spin shrink-0" />
                       Completing connection with {connector.name}...
-                    </div>
+                    </StatusAlert>
                   )}
                   {oauthStatus === "done" && testResult?.valid && (
-                    <div className="flex items-center gap-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-500/10 p-4 text-sm text-emerald-600 dark:text-emerald-400">
+                    <StatusAlert variant="success">
                       <CheckCircle2 className="h-4 w-4 shrink-0" />
-                      Successfully connected to {connector.name}! Give this account a name below to save it.
-                    </div>
+                      Connected to {connector.name}! Name this account below to save it.
+                    </StatusAlert>
                   )}
                   {oauthStatus === "error" && oauthError && (
-                    <div className="flex items-center gap-2 rounded-lg border border-red-200 dark:border-red-800 bg-red-500/10 p-4 text-sm text-red-600 dark:text-red-400">
+                    <StatusAlert variant="error">
                       <AlertCircle className="h-4 w-4 shrink-0" />
                       {oauthError}
-                    </div>
+                    </StatusAlert>
                   )}
 
                   {oauthAppConfigured === false && (
-                    <div className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-500/10 p-4 space-y-3">
-                      <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-400">
-                        <AlertCircle className="h-4 w-4 shrink-0" />
-                        {connector.name} OAuth app not configured
+                    <StatusAlert variant="warning">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <div className="space-y-2">
+                        <p className="font-semibold">{connector.name} OAuth not configured</p>
+                        <p className="text-muted-foreground font-normal">Register a developer app and enter credentials in Settings first.</p>
+                        <Button asChild size="sm" variant="outline">
+                          <a href={`/settings?oauth_setup_needed=${connectorId}`}>
+                            Go to Settings <ExternalLink className="ml-2 h-3 w-3" />
+                          </a>
+                        </Button>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Before you can connect via OAuth, you need to register your {connector.name} developer app
-                        and enter its credentials in Settings.
-                      </p>
-                      <Button asChild size="sm" variant="outline">
-                        <a href={`/settings?oauth_setup_needed=${connectorId}`}>
-                          Go to Settings
-                          <ExternalLink className="ml-2 h-3 w-3" />
-                        </a>
-                      </Button>
-                    </div>
+                    </StatusAlert>
                   )}
 
                   {oauthStatus !== "done" && oauthAppConfigured !== false && (
@@ -404,130 +376,85 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
                     </Button>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={() => setShowManual((p) => !p)}
-                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
+                  <button type="button" onClick={() => setShowManual((p) => !p)}
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
                     {showManual ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                    {showManual ? "Hide manual token entry" : "Have a token already? Enter it manually"}
+                    {showManual ? "Hide manual entry" : "Have a token already? Enter manually"}
                   </button>
 
                   {showManual && (
-                    <div className="rounded-lg border border-border p-4 space-y-3">
-                      <p className="text-xs text-muted-foreground">
-                        If you already have an access token (e.g. from a developer dashboard), paste it below.
-                      </p>
-                      <div className="space-y-2">
-                        <Label>Access Token</Label>
-                        <Input
-                          type="password"
-                          placeholder="Paste your access token here"
+                    <div className="rounded-xl border border-border p-4 space-y-3">
+                      <p className="text-xs text-muted-foreground">Paste an existing access token below.</p>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Access Token</Label>
+                        <Input type="password" placeholder="Paste token here"
                           value={credentials.accessToken || ""}
-                          onChange={(e) => setCredentials((p) => ({ ...p, accessToken: e.target.value }))}
-                        />
+                          onChange={(e) => setCredentials((p) => ({ ...p, accessToken: e.target.value }))} />
                       </div>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* API Key / Header Auth */}
               {!isOAuth && (
                 <div className="space-y-4">
-                  <div className="rounded-lg border border-border bg-muted/30 p-4">
+                  <div className="rounded-xl border border-border bg-secondary/50 p-4">
                     <p className="text-sm text-muted-foreground">
-                      Enter the API credentials for your client&apos;s {connector.name} account.
-                      These are typically found in the platform&apos;s settings or developer section.
+                      Enter your client&apos;s {connector.name} API credentials.
+                      Typically found in the platform&apos;s settings or developer section.
                     </p>
                   </div>
                   {fields.map((field) => (
-                    <div key={field.key} className="space-y-2">
-                      <Label htmlFor={field.key}>{field.label}</Label>
-                      <Input
-                        id={field.key}
-                        type={field.secret ? "password" : "text"}
+                    <div key={field.key} className="space-y-1.5">
+                      <Label htmlFor={field.key} className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                        {field.label}
+                      </Label>
+                      <Input id={field.key} type={field.secret ? "password" : "text"}
                         placeholder={field.placeholder}
                         value={credentials[field.key] || ""}
-                        onChange={(e) => setCredentials((p) => ({ ...p, [field.key]: e.target.value }))}
-                      />
-                      {field.helpText && (
-                        <p className="text-xs text-muted-foreground">{field.helpText}</p>
-                      )}
+                        onChange={(e) => setCredentials((p) => ({ ...p, [field.key]: e.target.value }))} />
+                      {field.helpText && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Account label */}
               {(hasCredentials || oauthStatus === "done") && (
-                <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="label">
-                      Account Name
-                    </Label>
-                    <Input
-                      id="label"
-                      placeholder={`e.g. Dr. Smith's ${connector.name}, ABC Clinic`}
-                      value={label}
-                      onChange={(e) => setLabel(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Give this connection a recognizable name. It will be saved so you can
-                      reuse it for future migrations without re-entering credentials.
-                    </p>
-                  </div>
+                <div className="rounded-xl border border-border bg-secondary/50 p-4 space-y-3">
+                  <Label htmlFor="label" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Account Name
+                  </Label>
+                  <Input id="label" placeholder={`e.g. Dr. Smith's ${connector.name}`}
+                    value={label} onChange={(e) => setLabel(e.target.value)} />
+                  <p className="text-xs text-muted-foreground">
+                    A recognizable name so you can reuse this connection for future migrations.
+                  </p>
                 </div>
               )}
 
-              {/* Test result */}
               {testResult && (
-                <div className={`flex items-center gap-2 rounded-lg border p-4 text-sm ${
-                  testResult.valid
-                    ? "border-emerald-200 dark:border-emerald-800 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                    : "border-red-200 dark:border-red-800 bg-red-500/10 text-red-600 dark:text-red-400"
-                }`}>
-                  {testResult.valid
-                    ? <CheckCircle2 className="h-4 w-4 shrink-0" />
-                    : <AlertCircle className="h-4 w-4 shrink-0" />}
-                  {testResult.valid ? "Connection successful! The credentials are working." : testResult.error || "Connection failed. Please double-check your credentials."}
-                </div>
+                <StatusAlert variant={testResult.valid ? "success" : "error"}>
+                  {testResult.valid ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
+                  {testResult.valid ? "Connection successful!" : testResult.error || "Connection failed. Double-check credentials."}
+                </StatusAlert>
               )}
 
               {saveError && (
-                <div className="flex items-center gap-2 rounded-lg border border-red-200 dark:border-red-800 bg-red-500/10 p-4 text-sm text-red-600 dark:text-red-400">
+                <StatusAlert variant="error">
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   {saveError}
-                </div>
+                </StatusAlert>
               )}
 
-              {/* Actions */}
               <div className="flex flex-wrap gap-3 pt-1">
                 {(!isOAuth || showManual) && oauthStatus !== "done" && (
                   <Button variant="outline" onClick={handleTest} disabled={testing || !hasCredentials} className="gap-2">
-                    {testing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Testing...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="h-4 w-4" />
-                        Test Connection
-                      </>
-                    )}
+                    {testing ? <><Loader2 className="h-4 w-4 animate-spin" /> Testing...</> : <><RefreshCw className="h-4 w-4" /> Test Connection</>}
                   </Button>
                 )}
                 {(testResult?.valid || oauthStatus === "done") && (
                   <Button onClick={handleSaveAndContinue} disabled={saving || !label.trim()} className="gap-2">
-                    {saving ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      "Save & Continue"
-                    )}
+                    {saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</> : "Save & Continue"}
                   </Button>
                 )}
               </div>
@@ -535,6 +462,20 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function StatusAlert({ variant, children }: { variant: "success" | "error" | "warning" | "info"; children: React.ReactNode }) {
+  const styles = {
+    success: "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    error: "border-red-500/20 bg-red-500/10 text-red-500",
+    warning: "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    info: "border-violet-500/20 bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  };
+  return (
+    <div className={`flex items-start gap-2.5 rounded-xl border p-4 text-sm font-medium ${styles[variant]}`}>
+      {children}
     </div>
   );
 }

@@ -6,9 +6,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ArrowRightLeft, Users, Zap, Shield } from "lucide-react";
+import { ArrowRightLeft, Users, Zap, Shield, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -61,174 +60,125 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen bg-background">
-      {/* Theme toggle */}
+    <div className="relative flex min-h-screen items-center justify-center gradient-hero overflow-hidden">
+      {/* Decorative blobs */}
+      <div className="pointer-events-none absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-violet-600/20 blur-[120px]" />
+      <div className="pointer-events-none absolute -bottom-40 -left-40 h-[400px] w-[400px] rounded-full bg-orange-500/10 blur-[100px]" />
+
       <div className="absolute right-4 top-4 z-10">
         <ThemeToggle />
       </div>
 
-      {/* Left panel - branding */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-primary p-12 text-primary-foreground">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
-              <ArrowRightLeft className="h-5 w-5" />
-            </div>
-            <span className="text-xl font-bold">Platform Integrator</span>
+      <div className="relative z-10 w-full max-w-[460px] px-4">
+        {/* Logo */}
+        <div className="mb-10 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl gradient-primary shadow-lg shadow-violet-500/30">
+            <ArrowRightLeft className="h-6 w-6 text-white" />
           </div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            Platform Integrator
+          </h1>
+          <p className="mt-1 text-violet-200/60 text-sm">
+            CRM data migration for GoHighLevel
+          </p>
         </div>
 
-        <div className="space-y-8">
-          <div>
-            <h1 className="text-4xl font-bold leading-tight">
-              Migrate your CRM data
-              <br />to GoHighLevel
-            </h1>
-            <p className="mt-4 text-lg text-primary-foreground/80">
-              The easiest way to move contacts, conversations, and more from any
-              platform into GHL sub-accounts.
+        {/* Form card */}
+        <div className="glass rounded-3xl border border-white/10 p-8 shadow-2xl">
+          <div className="mb-6 text-center">
+            <h2 className="text-xl font-bold text-foreground">
+              {isRegister ? "Create your account" : "Welcome back"}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {isRegister
+                ? "Get started in under a minute"
+                : "Sign in to continue where you left off"}
             </p>
           </div>
 
-          <div className="space-y-4">
-            <FeatureItem
-              icon={Users}
-              title="10+ Platforms Supported"
-              description="Podium, HubSpot, Pipedrive, Dentally, and more"
-            />
-            <FeatureItem
-              icon={Zap}
-              title="Automated Field Mapping"
-              description="Smart field detection maps your data automatically"
-            />
-            <FeatureItem
-              icon={Shield}
-              title="Secure & Encrypted"
-              description="All credentials are encrypted at rest"
-            />
-          </div>
-        </div>
-
-        <p className="text-sm text-primary-foreground/50">
-          Built for GHL agencies and their clients
-        </p>
-      </div>
-
-      {/* Right panel - form */}
-      <div className="flex flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          {/* Mobile branding */}
-          <div className="mb-8 text-center lg:hidden">
-            <div className="mb-4 flex items-center justify-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                <ArrowRightLeft className="h-5 w-5" />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {isRegister && (
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Full Name
+                </Label>
+                <Input id="name" name="name" placeholder="John Smith" required />
               </div>
-              <span className="text-xl font-bold text-foreground">Platform Integrator</span>
+            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Email
+              </Label>
+              <Input id="email" name="email" type="email" placeholder="you@agency.com" required />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Password
+              </Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                placeholder={isRegister ? "Min. 6 characters" : "Enter your password"}
+                required
+                minLength={6}
+              />
+            </div>
+
+            {error && (
+              <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
+                {error}
+              </div>
+            )}
+
+            <Button type="submit" className="w-full h-12 text-[15px] gap-2" disabled={loading}>
+              {loading ? (
+                "Please wait..."
+              ) : (
+                <>
+                  {isRegister ? "Create Account" : "Sign In"}
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
-              Migrate CRM data to GoHighLevel
+              {isRegister ? "Already have an account?" : "Don't have an account?"}{" "}
+              <button
+                type="button"
+                onClick={() => { setIsRegister(!isRegister); setError(""); }}
+                className="font-semibold text-primary hover:underline"
+              >
+                {isRegister ? "Sign in" : "Create one"}
+              </button>
             </p>
           </div>
+        </div>
 
-          <Card className="border-border/50 shadow-lg">
-            <CardHeader className="text-center pb-2">
-              <CardTitle className="text-2xl font-bold">
-                {isRegister ? "Create your account" : "Welcome back"}
-              </CardTitle>
-              <CardDescription className="text-base">
-                {isRegister
-                  ? "Set up your account to start migrating data"
-                  : "Sign in to manage your migrations"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {isRegister && (
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      placeholder="e.g. John Smith"
-                      required
-                    />
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="you@agency.com"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder={isRegister ? "Min. 6 characters" : "Enter your password"}
-                    required
-                    minLength={6}
-                  />
-                </div>
-
-                {error && (
-                  <div className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                    {error}
-                  </div>
-                )}
-
-                <Button type="submit" className="w-full h-11 text-base" disabled={loading}>
-                  {loading
-                    ? "Please wait..."
-                    : isRegister
-                      ? "Create Account"
-                      : "Sign In"}
-                </Button>
-
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground">
-                    {isRegister ? "Already have an account?" : "Don't have an account?"}{" "}
-                    <button
-                      type="button"
-                      onClick={() => { setIsRegister(!isRegister); setError(""); }}
-                      className="font-medium text-primary hover:underline"
-                    >
-                      {isRegister ? "Sign in" : "Create one"}
-                    </button>
-                  </p>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+        {/* Feature highlights */}
+        <div className="mt-8 grid grid-cols-3 gap-4">
+          <FeatureChip icon={Users} label="10+ Platforms" />
+          <FeatureChip icon={Zap} label="Auto Mapping" />
+          <FeatureChip icon={Shield} label="Encrypted" />
         </div>
       </div>
     </div>
   );
 }
 
-function FeatureItem({
+function FeatureChip({
   icon: Icon,
-  title,
-  description,
+  label,
 }: {
   icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  description: string;
+  label: string;
 }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/15">
-        <Icon className="h-4 w-4" />
-      </div>
-      <div>
-        <p className="font-medium">{title}</p>
-        <p className="text-sm text-primary-foreground/70">{description}</p>
-      </div>
+    <div className="flex flex-col items-center gap-1.5 rounded-xl border border-white/8 bg-white/5 px-3 py-3 text-center">
+      <Icon className="h-4 w-4 text-violet-300/70" />
+      <span className="text-[11px] font-medium text-violet-200/50">{label}</span>
     </div>
   );
 }

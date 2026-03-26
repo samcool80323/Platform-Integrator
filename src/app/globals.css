@@ -1,30 +1,29 @@
 @import "tailwindcss";
 
-/* Class-based dark mode for Tailwind v4 */
 @variant dark (&:where(.dark, .dark *));
 
-/* ─── Light Theme ─────────────────────────────────────── */
+/* ─── Light Theme: Warm & Clean ────────────────────── */
 :root {
-  --background:            #f8fafc;
-  --foreground:            #0f172a;
+  --background:            #faf9f7;
+  --foreground:            #1c1917;
 
   --card:                  #ffffff;
-  --card-foreground:       #0f172a;
+  --card-foreground:       #1c1917;
 
   --popover:               #ffffff;
-  --popover-foreground:    #0f172a;
+  --popover-foreground:    #1c1917;
 
-  --primary:               #2563eb;
+  --primary:               #7c3aed;
   --primary-foreground:    #ffffff;
 
-  --secondary:             #f1f5f9;
-  --secondary-foreground:  #334155;
+  --secondary:             #f5f3ff;
+  --secondary-foreground:  #5b21b6;
 
-  --muted:                 #f1f5f9;
-  --muted-foreground:      #64748b;
+  --muted:                 #f5f5f4;
+  --muted-foreground:      #78716c;
 
-  --accent:                #eff6ff;
-  --accent-foreground:     #1e40af;
+  --accent:                #fff7ed;
+  --accent-foreground:     #c2410c;
 
   --destructive:           #dc2626;
   --destructive-foreground:#ffffff;
@@ -35,41 +34,51 @@
   --warning:               #d97706;
   --warning-foreground:    #ffffff;
 
-  --border:                #e2e8f0;
-  --input:                 #e2e8f0;
-  --ring:                  #2563eb;
+  --border:                #e7e5e4;
+  --input:                 #d6d3d1;
+  --ring:                  #7c3aed;
 
-  --sidebar:               #ffffff;
-  --sidebar-foreground:    #334155;
-  --sidebar-border:        #e2e8f0;
-  --sidebar-active:        #eff6ff;
-  --sidebar-active-foreground: #1d4ed8;
+  --sidebar-bg:            #1e1b2e;
+  --sidebar-foreground:    #a8a3b8;
+  --sidebar-border:        #2d2940;
+  --sidebar-active:        rgba(139, 92, 246, 0.15);
+  --sidebar-active-foreground: #c4b5fd;
+  --sidebar-hover:         rgba(255, 255, 255, 0.05);
+  --sidebar-heading:       #6d6882;
 
-  --radius:                0.625rem;
+  --radius:                0.75rem;
+
+  --gradient-primary:      linear-gradient(135deg, #7c3aed 0%, #6d28d9 50%, #5b21b6 100%);
+  --gradient-accent:       linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  --gradient-hero:         linear-gradient(135deg, #1e1b2e 0%, #312e52 40%, #4c1d95 100%);
+
+  --shadow-card:           0 1px 3px rgba(28, 25, 23, 0.06), 0 1px 2px rgba(28, 25, 23, 0.04);
+  --shadow-card-hover:     0 10px 25px -5px rgba(28, 25, 23, 0.08), 0 4px 10px -4px rgba(28, 25, 23, 0.04);
+  --shadow-glow:           0 0 20px rgba(124, 58, 237, 0.15);
 }
 
-/* ─── Dark Theme ──────────────────────────────────────── */
+/* ─── Dark Theme: Deep & Rich ──────────────────────── */
 .dark {
-  --background:            #0c1222;
-  --foreground:            #e2e8f0;
+  --background:            #0f0e17;
+  --foreground:            #e7e5e4;
 
-  --card:                  #1a2332;
-  --card-foreground:       #e2e8f0;
+  --card:                  #1a1825;
+  --card-foreground:       #e7e5e4;
 
-  --popover:               #1a2332;
-  --popover-foreground:    #e2e8f0;
+  --popover:               #1a1825;
+  --popover-foreground:    #e7e5e4;
 
-  --primary:               #3b82f6;
-  --primary-foreground:    #ffffff;
+  --primary:               #a78bfa;
+  --primary-foreground:    #0f0e17;
 
-  --secondary:             #1e293b;
-  --secondary-foreground:  #cbd5e1;
+  --secondary:             #1e1b2e;
+  --secondary-foreground:  #c4b5fd;
 
-  --muted:                 #1e293b;
-  --muted-foreground:      #94a3b8;
+  --muted:                 #1e1b2e;
+  --muted-foreground:      #8b8498;
 
-  --accent:                #172554;
-  --accent-foreground:     #93c5fd;
+  --accent:                #271a0f;
+  --accent-foreground:     #fb923c;
 
   --destructive:           #ef4444;
   --destructive-foreground:#ffffff;
@@ -80,18 +89,28 @@
   --warning:               #f59e0b;
   --warning-foreground:    #ffffff;
 
-  --border:                #293548;
-  --input:                 #293548;
-  --ring:                  #3b82f6;
+  --border:                #2d2940;
+  --input:                 #2d2940;
+  --ring:                  #a78bfa;
 
-  --sidebar:               #111827;
-  --sidebar-foreground:    #94a3b8;
-  --sidebar-border:        #1e293b;
-  --sidebar-active:        #172554;
-  --sidebar-active-foreground: #60a5fa;
+  --sidebar-bg:            #0a0914;
+  --sidebar-foreground:    #8b8498;
+  --sidebar-border:        #1e1b2e;
+  --sidebar-active:        rgba(167, 139, 250, 0.12);
+  --sidebar-active-foreground: #c4b5fd;
+  --sidebar-hover:         rgba(255, 255, 255, 0.04);
+  --sidebar-heading:       #4a4558;
+
+  --gradient-primary:      linear-gradient(135deg, #a78bfa 0%, #8b5cf6 50%, #7c3aed 100%);
+  --gradient-accent:       linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+  --gradient-hero:         linear-gradient(135deg, #0a0914 0%, #1a1440 40%, #2e1065 100%);
+
+  --shadow-card:           0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-card-hover:     0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 4px 10px -4px rgba(0, 0, 0, 0.3);
+  --shadow-glow:           0 0 30px rgba(167, 139, 250, 0.12);
 }
 
-/* ─── Tailwind v4 theme mapping ───────────────────────── */
+/* ─── Tailwind v4 theme mapping ───────────────────── */
 @theme inline {
   --color-background:           var(--background);
   --color-foreground:           var(--foreground);
@@ -111,24 +130,19 @@
   --color-border:               var(--border);
   --color-input:                var(--input);
   --color-ring:                 var(--ring);
-  --color-sidebar:              var(--sidebar);
-  --color-sidebar-foreground:   var(--sidebar-foreground);
-  --color-sidebar-border:       var(--sidebar-border);
-  --color-sidebar-active:       var(--sidebar-active);
-  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
   --color-success:              var(--success);
   --color-warning:              var(--warning);
-  --font-sans:                  var(--font-geist-sans);
-  --font-mono:                  var(--font-geist-mono);
+  --font-sans:                  var(--font-inter);
+  --font-mono:                  var(--font-mono);
   --radius:                     var(--radius);
 }
 
-/* ─── Base ────────────────────────────────────────────── */
+/* ─── Base ────────────────────────────────────────── */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.011em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -139,32 +153,64 @@ body {
   border-color: var(--border);
 }
 
-/* ─── Scrollbar ───────────────────────────────────────── */
+/* ─── Typography helpers ──────────────────────────── */
+h1, h2, h3, h4 {
+  letter-spacing: -0.025em;
+}
+
+/* ─── Scrollbar ───────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--muted-foreground);
+  background: var(--border);
   border-radius: 9999px;
-  opacity: 0.3;
 }
 ::-webkit-scrollbar-thumb:hover {
-  opacity: 0.5;
+  background: var(--muted-foreground);
 }
 
-/* ─── Focus Visible ───────────────────────────────────── */
+/* ─── Focus ───────────────────────────────────────── */
 :focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
-/* ─── Selection ───────────────────────────────────────── */
+/* ─── Selection ───────────────────────────────────── */
 ::selection {
   background: var(--primary);
   color: var(--primary-foreground);
+}
+
+/* ─── Utility classes ─────────────────────────────── */
+.gradient-primary {
+  background: var(--gradient-primary);
+}
+.gradient-accent {
+  background: var(--gradient-accent);
+}
+.gradient-hero {
+  background: var(--gradient-hero);
+}
+.shadow-card {
+  box-shadow: var(--shadow-card);
+}
+.shadow-card-hover {
+  box-shadow: var(--shadow-card-hover);
+}
+.shadow-glow {
+  box-shadow: var(--shadow-glow);
+}
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.dark .glass {
+  background: rgba(26, 24, 37, 0.75);
 }

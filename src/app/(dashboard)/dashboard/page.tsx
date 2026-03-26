@@ -1,13 +1,10 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Plus,
   ArrowRightLeft,
   CheckCircle2,
-  AlertCircle,
-  Clock,
   ArrowRight,
   Layers,
   Loader2,
@@ -41,7 +38,7 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Dashboard</h1>
           <p className="mt-1 text-muted-foreground">
             Track and manage your CRM data migrations
           </p>
@@ -57,32 +54,28 @@ export default async function DashboardPage() {
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Total Migrations"
+          title="Total"
           value={stats.total}
           icon={Layers}
-          iconColor="text-primary"
-          iconBg="bg-primary/10"
+          accentClass="bg-violet-500/10 text-violet-600 dark:text-violet-400"
         />
         <StatCard
           title="Running"
           value={stats.running}
           icon={Loader2}
-          iconColor="text-blue-500"
-          iconBg="bg-blue-500/10"
+          accentClass="bg-orange-500/10 text-orange-600 dark:text-orange-400"
         />
         <StatCard
           title="Completed"
           value={stats.completed}
           icon={CheckCircle2}
-          iconColor="text-emerald-500"
-          iconBg="bg-emerald-500/10"
+          accentClass="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
         />
         <StatCard
           title="Failed"
           value={stats.failed}
           icon={XCircle}
-          iconColor="text-red-500"
-          iconBg="bg-red-500/10"
+          accentClass="bg-red-500/10 text-red-600 dark:text-red-400"
         />
       </div>
 
@@ -92,7 +85,7 @@ export default async function DashboardPage() {
           <CardTitle className="text-lg">Recent Migrations</CardTitle>
           {migrations.length > 0 && (
             <span className="text-sm text-muted-foreground">
-              Showing last {migrations.length}
+              Last {migrations.length}
             </span>
           )}
         </CardHeader>
@@ -109,36 +102,42 @@ export default async function DashboardPage() {
                   <Link
                     key={m.id}
                     href={`/migrations/${m.id}`}
-                    className="group flex items-center gap-4 rounded-lg border border-border p-4 transition-all hover:border-primary/30 hover:bg-accent/50 hover:shadow-sm"
+                    className="group flex items-center gap-4 rounded-xl border border-border p-4 transition-all duration-200 hover:shadow-card-hover hover:border-primary/20"
                   >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                      <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10">
+                      <ArrowRightLeft className="h-4 w-4 text-violet-500" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium text-foreground truncate">
+                        <p className="font-semibold text-foreground truncate capitalize">
                           {m.connectorId}
                         </p>
-                        <ArrowRight className="h-3 w-3 text-muted-foreground/50 shrink-0" />
-                        <p className="text-muted-foreground truncate">
+                        <ArrowRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                        <p className="text-muted-foreground truncate text-sm">
                           {m.ghlLocationName}
                         </p>
                       </div>
-                      <div className="mt-1 flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground">
-                          {m.processedContacts}/{m.totalContacts} contacts
-                          {m.totalContacts > 0 && ` (${progress}%)`}
-                        </span>
-                        <span className="text-xs text-muted-foreground/40">
+                      <div className="mt-1.5 flex items-center gap-3">
+                        {m.totalContacts > 0 && (
+                          <div className="flex items-center gap-1.5">
+                            <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-violet-500 transition-all"
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-muted-foreground">{progress}%</span>
+                          </div>
+                        )}
+                        <span className="text-xs text-muted-foreground/50">
                           {m.createdAt.toLocaleDateString("en-US", {
                             month: "short",
                             day: "numeric",
-                            year: "numeric",
                           })}
                         </span>
                       </div>
                     </div>
-                    <StatusBadge status={m.status} />
+                    <StatusPill status={m.status} />
                   </Link>
                 );
               })}
@@ -152,28 +151,27 @@ export default async function DashboardPage() {
 
 function EmptyState() {
   return (
-    <div className="py-16 text-center">
-      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-        <ArrowRightLeft className="h-7 w-7 text-primary" />
+    <div className="py-20 text-center">
+      <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary shadow-lg shadow-violet-500/20">
+        <ArrowRightLeft className="h-7 w-7 text-white" />
       </div>
-      <h3 className="text-lg font-semibold text-foreground">
+      <h3 className="text-lg font-bold text-foreground tracking-tight">
         No migrations yet
       </h3>
-      <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-        Get started by creating your first migration. You&apos;ll be guided
-        through connecting your source platform and mapping fields to
-        GoHighLevel.
+      <p className="mx-auto mt-2 max-w-[340px] text-sm text-muted-foreground leading-relaxed">
+        Start by creating a migration. You&apos;ll connect a source platform,
+        map fields, and import everything into GoHighLevel.
       </p>
-      <div className="mt-6 flex flex-col items-center gap-3">
+      <div className="mt-8 flex flex-col items-center gap-3">
         <Link href="/migrations/new">
           <Button size="lg" className="gap-2">
             <Plus className="h-4 w-4" />
-            Create Your First Migration
+            Create First Migration
           </Button>
         </Link>
-        <Link href="/settings" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <Link href="/settings" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
           <Settings className="h-3.5 w-3.5" />
-          Or set up your GHL connection first
+          Set up GHL connection first
         </Link>
       </div>
     </div>
@@ -184,23 +182,21 @@ function StatCard({
   title,
   value,
   icon: Icon,
-  iconColor,
-  iconBg,
+  accentClass,
 }: {
   title: string;
   value: number;
   icon: React.ComponentType<{ className?: string }>;
-  iconColor: string;
-  iconBg: string;
+  accentClass: string;
 }) {
   return (
     <Card>
       <CardContent className="flex items-center gap-4 p-5">
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
-          <Icon className={`h-5 w-5 ${iconColor}`} />
+        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${accentClass}`}>
+          <Icon className="h-5 w-5" />
         </div>
         <div>
-          <p className="text-2xl font-bold text-foreground">{value}</p>
+          <p className="text-3xl font-bold text-foreground tracking-tight">{value}</p>
           <p className="text-sm text-muted-foreground">{title}</p>
         </div>
       </CardContent>
@@ -208,40 +204,19 @@ function StatCard({
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusPill({ status }: { status: string }) {
   const config: Record<string, { label: string; className: string }> = {
-    PENDING: {
-      label: "Pending",
-      className: "bg-muted text-muted-foreground border-transparent",
-    },
-    RUNNING: {
-      label: "Running",
-      className: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800",
-    },
-    COMPLETED: {
-      label: "Completed",
-      className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
-    },
-    COMPLETED_WITH_ERRORS: {
-      label: "Partial",
-      className: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800",
-    },
-    FAILED: {
-      label: "Failed",
-      className: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800",
-    },
-    CANCELLED: {
-      label: "Cancelled",
-      className: "bg-muted text-muted-foreground border-transparent",
-    },
-    PAUSED: {
-      label: "Paused",
-      className: "bg-muted text-muted-foreground border-transparent",
-    },
+    PENDING: { label: "Pending", className: "bg-muted text-muted-foreground" },
+    RUNNING: { label: "Running", className: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
+    COMPLETED: { label: "Done", className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+    COMPLETED_WITH_ERRORS: { label: "Partial", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+    FAILED: { label: "Failed", className: "bg-red-500/10 text-red-600 dark:text-red-400" },
+    CANCELLED: { label: "Cancelled", className: "bg-muted text-muted-foreground" },
+    PAUSED: { label: "Paused", className: "bg-muted text-muted-foreground" },
   };
-  const c = config[status] || { label: status, className: "bg-muted text-muted-foreground border-transparent" };
+  const c = config[status] || { label: status, className: "bg-muted text-muted-foreground" };
   return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${c.className}`}>
+    <span className={`shrink-0 inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-semibold ${c.className}`}>
       {c.label}
     </span>
   );

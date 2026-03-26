@@ -7,7 +7,7 @@ import { StepSourceAuth } from "@/components/wizard/step-source-auth";
 import { StepSelectGHL } from "@/components/wizard/step-select-ghl";
 import { StepFieldMapping } from "@/components/wizard/step-field-mapping";
 import { StepReview } from "@/components/wizard/step-review";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, Check } from "lucide-react";
 import type { FieldMapping, FieldSchema } from "@/lib/universal-model/types";
 
 interface WizardState {
@@ -24,11 +24,11 @@ interface WizardState {
 }
 
 const STEPS = [
-  { label: "Source Platform", description: "Choose where data is coming from" },
-  { label: "Authentication", description: "Connect to the source" },
-  { label: "GHL Account", description: "Pick destination sub-account" },
-  { label: "Field Mapping", description: "Map source fields to GHL" },
-  { label: "Review & Start", description: "Confirm and begin migration" },
+  { label: "Source", description: "Choose where data comes from" },
+  { label: "Authenticate", description: "Connect to the source platform" },
+  { label: "Destination", description: "Pick a GHL sub-account" },
+  { label: "Map Fields", description: "Match source fields to GHL" },
+  { label: "Review", description: "Confirm and start importing" },
 ];
 
 export default function NewMigrationPage() {
@@ -52,25 +52,21 @@ export default function NewMigrationPage() {
         options: state.options || {},
         credentialLabel: state.credentialLabel || `${state.connectorName} Import`,
       };
-
       if (state.credentialId) {
         body.credentialId = state.credentialId;
       } else {
         body.credentials = state.credentials;
       }
-
       const res = await fetch("/api/migrations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-
       if (!res.ok) {
         const data = await res.json();
         setStartError(data.error || "Failed to create migration");
         return;
       }
-
       const { migration } = await res.json();
       await fetch(`/api/migrations/${migration.id}/start`, { method: "POST" });
       router.push(`/migrations/${migration.id}`);
@@ -81,68 +77,59 @@ export default function NewMigrationPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">New Migration</h1>
+        <h1 className="text-2xl font-bold text-foreground tracking-tight">New Migration</h1>
         <p className="mt-1 text-muted-foreground">
-          Follow the steps below to import data from your client&apos;s platform into GoHighLevel.
+          Import data from your client&apos;s platform into GoHighLevel.
         </p>
       </div>
 
-      {/* Step indicator */}
-      <div className="relative">
-        <div className="flex items-center justify-between">
-          {STEPS.map((s, i) => {
-            const isCompleted = i < step;
-            const isCurrent = i === step;
-            return (
-              <div key={s.label} className="flex flex-1 items-center">
-                <div className="flex flex-col items-center text-center">
-                  <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-semibold transition-all ${
-                      isCompleted
-                        ? "border-emerald-500 bg-emerald-500 text-white"
-                        : isCurrent
-                          ? "border-primary bg-primary text-primary-foreground shadow-md shadow-primary/25"
-                          : "border-border bg-background text-muted-foreground"
-                    }`}
-                  >
-                    {isCompleted ? (
-                      <CheckCircle2 className="h-5 w-5" />
-                    ) : (
-                      i + 1
-                    )}
-                  </div>
-                  <p className={`mt-2 text-xs font-medium hidden sm:block ${
-                    isCurrent ? "text-foreground" : "text-muted-foreground"
-                  }`}>
-                    {s.label}
-                  </p>
+      {/* Stepper */}
+      <div className="flex items-center gap-1">
+        {STEPS.map((s, i) => {
+          const done = i < step;
+          const active = i === step;
+          return (
+            <div key={s.label} className="flex flex-1 items-center gap-1">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all duration-200 ${
+                    done
+                      ? "gradient-primary text-white shadow-sm shadow-violet-500/20"
+                      : active
+                        ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+                        : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
                 </div>
-                {i < STEPS.length - 1 && (
-                  <div className="flex-1 px-2">
-                    <div
-                      className={`h-0.5 w-full rounded-full transition-colors ${
-                        i < step ? "bg-emerald-500" : "bg-border"
-                      }`}
-                    />
-                  </div>
-                )}
+                <span
+                  className={`hidden md:block text-xs font-medium whitespace-nowrap ${
+                    active ? "text-foreground" : "text-muted-foreground/60"
+                  }`}
+                >
+                  {s.label}
+                </span>
               </div>
-            );
-          })}
-        </div>
+              {i < STEPS.length - 1 && (
+                <div className="flex-1 mx-1">
+                  <div className={`h-px w-full transition-colors ${done ? "bg-primary" : "bg-border"}`} />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* Current step description */}
-      <div className="rounded-lg border border-border bg-muted/30 px-4 py-3">
+      {/* Step hint */}
+      <div className="rounded-xl bg-secondary/60 border border-primary/10 px-4 py-3">
         <p className="text-sm">
-          <span className="font-medium text-foreground">Step {step + 1}:</span>{" "}
+          <span className="font-semibold text-primary">Step {step + 1}:</span>{" "}
           <span className="text-muted-foreground">{STEPS[step].description}</span>
         </p>
       </div>
 
-      {/* Step content */}
+      {/* Content */}
       <div>
         {step === 0 && (
           <StepSelectSource
@@ -152,30 +139,20 @@ export default function NewMigrationPage() {
             }}
           />
         )}
-
         {step === 1 && state.connectorId && (
           <StepSourceAuth
             connectorId={state.connectorId}
             onAuthenticated={(data) => {
               if ("credentialId" in data) {
-                updateState({
-                  credentialId: data.credentialId,
-                  credentials: undefined,
-                  credentialLabel: data.label,
-                });
+                updateState({ credentialId: data.credentialId, credentials: undefined, credentialLabel: data.label });
               } else {
-                updateState({
-                  credentialId: undefined,
-                  credentials: data.credentials,
-                  credentialLabel: data.label,
-                });
+                updateState({ credentialId: undefined, credentials: data.credentials, credentialLabel: data.label });
               }
               setStep(2);
             }}
             onBack={() => setStep(0)}
           />
         )}
-
         {step === 2 && (
           <StepSelectGHL
             onSelect={(locationId, locationName) => {
@@ -185,7 +162,6 @@ export default function NewMigrationPage() {
             onBack={() => setStep(1)}
           />
         )}
-
         {step === 3 && state.connectorId && (state.credentials || state.credentialId) && (
           <StepFieldMapping
             connectorId={state.connectorId}
@@ -198,20 +174,15 @@ export default function NewMigrationPage() {
             onBack={() => setStep(2)}
           />
         )}
-
         {step === 4 && (
           <>
             {startError && (
-              <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 dark:border-red-800 bg-red-500/10 p-4 text-sm text-red-600 dark:text-red-400">
+              <div className="mb-4 flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-500">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 {startError}
               </div>
             )}
-            <StepReview
-              state={state as WizardState}
-              onStart={handleStart}
-              onBack={() => setStep(3)}
-            />
+            <StepReview state={state as WizardState} onStart={handleStart} onBack={() => setStep(3)} />
           </>
         )}
       </div>
