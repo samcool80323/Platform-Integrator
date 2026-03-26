@@ -163,7 +163,10 @@ export class PodiumConnector implements PlatformConnector {
       const res = await fetch(url.toString(), {
         headers: { Authorization: `Bearer ${creds.accessToken}`, Accept: "application/json" },
       });
-      if (!res.ok) throw new Error(`Podium conversations API error: ${res.status}`);
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        throw new Error(`Podium conversations API error: ${res.status} ${body.slice(0, 300)}`);
+      }
       const data = await res.json();
       const conversations = data.data || [];
       if (conversations.length === 0) break;
@@ -185,20 +188,38 @@ export class PodiumConnector implements PlatformConnector {
 
   /**
    * Fetch ALL conversations for a specific contact.
-   * Uses Podium's contactUid filter to avoid fetching unrelated conversations.
-   * Falls back to scanning all conversations if the filter returns nothing
-   * (some Podium orgs use contactId instead of contactUid).
+   * Tries multiple Podium API patterns in order:
+   *   1. GET /conversations?contactUid=X  (filtered)
+   *   2. Scan all conversations matching contactUid/contactId
    */
   async fetchConversationsForContact(
     creds: Record<string, string>,
     contactSourceId: string
   ): Promise<UniversalConversation[]> {
-    // Try filtered fetch first (fast path)
-    const filtered = await this.fetchConversationsFiltered(creds, contactSourceId);
-    if (filtered.length > 0) return filtered;
+    const errors: string[] = [];
 
-    // Fallback: scan all conversations matching this contact
-    return this.fetchConversationsScan(creds, contactSourceId);
+    // Strategy 1: filtered endpoint
+    try {
+      const result = await this.fetchConversationsFiltered(creds, contactSourceId);
+      if (result.length > 0) return result;
+    } catch (e) {
+      errors.push(`filtered: ${e instanceof Error ? e.message : String(e)}`);
+    }
+
+    // Strategy 2: scan all and match
+    try {
+      const result = await this.fetchConversationsScan(creds, contactSourceId);
+      if (result.length > 0) return result;
+    } catch (e) {
+      errors.push(`scan: ${e instanceof Error ? e.message : String(e)}`);
+    }
+
+    // If all strategies produced errors (not just empty results), throw
+    if (errors.length > 0) {
+      throw new Error(`Podium conversation fetch failed for contact ${contactSourceId}: ${errors.join("; ")}`);
+    }
+
+    return [];
   }
 
   /**
@@ -220,15 +241,19 @@ export class PodiumConnector implements PlatformConnector {
       const res = await fetch(url.toString(), {
         headers: { Authorization: `Bearer ${creds.accessToken}`, Accept: "application/json" },
       });
-      if (!res.ok) break;
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        throw new Error(`Podium GET /conversations?contactUid= returned ${res.status}: ${body.slice(0, 300)}`);
+      }
       const data = await res.json();
       const conversations = data.data || [];
       if (conversations.length === 0) break;
 
       for (const conv of conversations) {
-        const messages = await fetchAllMessages(creds.accessToken, String(conv.uid));
+        const convId = String(conv.uid || conv.id);
+        const messages = await fetchAllMessages(creds.accessToken, convId);
         result.push({
-          sourceId: String(conv.uid || conv.id),
+          sourceId: convId,
           contactSourceId,
           channel: mapChannel(String(conv.channel || conv.channelType || "sms")),
           messages,
@@ -250,6 +275,7 @@ export class PodiumConnector implements PlatformConnector {
   ): Promise<UniversalConversation[]> {
     const result: UniversalConversation[] = [];
     let cursor: string | undefined;
+    let pagesScanned = 0;
 
     do {
       const url = new URL(`${PODIUM_API_BASE}/conversations`);
@@ -259,24 +285,36 @@ export class PodiumConnector implements PlatformConnector {
       const res = await fetch(url.toString(), {
         headers: { Authorization: `Bearer ${creds.accessToken}`, Accept: "application/json" },
       });
-      if (!res.ok) break;
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        throw new Error(`Podium GET /conversations returned ${res.status}: ${body.slice(0, 300)}`);
+      }
       const data = await res.json();
       const conversations = data.data || [];
       if (conversations.length === 0) break;
+
+      // Log first page structure for debugging
+      if (pagesScanned === 0 && conversations.length > 0) {
+        const sample = conversations[0];
+        console.log(`[Podium] Conversation sample keys: ${Object.keys(sample).join(", ")}`);
+        console.log(`[Podium] Sample contactUid=${sample.contactUid}, contactId=${sample.contactId}, uid=${sample.uid}, id=${sample.id}`);
+      }
 
       for (const conv of conversations) {
         const convContactId = String(conv.contactUid || conv.contactId || "");
         if (convContactId !== contactSourceId) continue;
 
-        const messages = await fetchAllMessages(creds.accessToken, String(conv.uid));
+        const convId = String(conv.uid || conv.id);
+        const messages = await fetchAllMessages(creds.accessToken, convId);
         result.push({
-          sourceId: String(conv.uid || conv.id),
+          sourceId: convId,
           contactSourceId: convContactId,
           channel: mapChannel(String(conv.channel || conv.channelType || "sms")),
           messages,
         });
       }
 
+      pagesScanned++;
       cursor = data.metadata?.cursor || data.nextCursor;
     } while (cursor);
 
@@ -305,7 +343,11 @@ async function fetchAllMessages(
     const res = await fetch(url.toString(), {
       headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" },
     });
-    if (!res.ok) break;
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.error(`[Podium] Messages API error for conversation ${conversationUid}: ${res.status} ${body.slice(0, 300)}`);
+      break;
+    }
 
     const data = await res.json();
     const messages = data.data || [];

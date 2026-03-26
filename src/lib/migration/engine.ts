@@ -261,14 +261,17 @@ export class MigrationEngine {
 
     // Strategy: fetch conversations per contact for accuracy
     if (connector.fetchConversationsForContact) {
+      await this.log("INFO", `Fetching conversations for ${this.sourceIdToGhlId.size} contacts...`);
+
       for (const [sourceId, ghlContactId] of this.sourceIdToGhlId) {
         try {
-          await this.log("DEBUG", `Fetching conversations for contact ${sourceId}...`);
+          await this.log("DEBUG", `Fetching conversations for contact ${sourceId} (GHL: ${ghlContactId})...`);
 
           const conversations = await connector.fetchConversationsForContact(creds, sourceId);
 
+          await this.log("DEBUG", `Contact ${sourceId}: found ${conversations.length} conversations with ${conversations.reduce((n, c) => n + c.messages.length, 0)} total messages`);
+
           if (conversations.length === 0) {
-            await this.log("DEBUG", `No conversations found for contact ${sourceId}`);
             continue;
           }
 
