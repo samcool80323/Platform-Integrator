@@ -127,8 +127,24 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ credentials: data.credentials }),
         });
-        setTestResult(await testRes.json());
-        setMode("add");
+        const testData = await testRes.json();
+        setTestResult(testData);
+
+        // Auto-save and continue if test passed — no manual steps needed
+        if (testData.valid) {
+          const autoLabel = `${connectorId} (OAuth ${new Date().toLocaleDateString()})`;
+          const saveRes = await fetch("/api/connected-accounts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ connectorId, label: autoLabel, credentials: data.credentials }),
+          });
+          const saveData = await saveRes.json();
+          if (saveRes.ok) {
+            onAuthenticated({ credentialId: saveData.account.id, label: saveData.account.label });
+            return; // done — wizard advances to next step
+          }
+        }
+        setMode("add"); // fallback if auto-save failed
       } else {
         setOauthError(data.error || "Failed to retrieve access token.");
         setOauthStatus("error");
@@ -138,7 +154,7 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
       setOauthError("Network error while retrieving token.");
       setOauthStatus("error");
     }
-  }, [connectorId]);
+  }, [connectorId, onAuthenticated]);
 
   useEffect(() => {
     const oauthDone = searchParams.get("oauth_done");

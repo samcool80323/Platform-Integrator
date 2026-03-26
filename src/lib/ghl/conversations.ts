@@ -43,3 +43,20 @@ export async function addOutboundMessage(
     date: data.date,
   });
 }
+
+/**
+ * Add an internal note on a contact.
+ * GHL endpoint: POST /contacts/{contactId}/notes
+ * This is for imported conversation history — always as notes, never as messages.
+ */
+export async function addContactNote(
+  client: GHLClient,
+  data: {
+    contactId: string;
+    body: string;
+  }
+): Promise<unknown> {
+  return client.post(`/contacts/${data.contactId}/notes`, {
+    body: data.body,
+  });
+}

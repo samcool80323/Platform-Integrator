@@ -2,7 +2,7 @@ import { prisma } from "../db";
 import { createLocationClient } from "../ghl/auth";
 import { upsertContact } from "../ghl/contacts";
 import { ensureCustomFields } from "../ghl/custom-fields";
-import { addInboundMessage, addOutboundMessage } from "../ghl/conversations";
+import { addInboundMessage, addOutboundMessage, addContactNote } from "../ghl/conversations";
 import { getConnector } from "../connectors/registry";
 import { decryptJson } from "../encryption";
 import { applyFieldMappings } from "./field-mapper";
@@ -231,35 +231,33 @@ export class MigrationEngine {
         const ghlContactId = this.sourceIdToGhlId.get(conv.contactSourceId);
         if (!ghlContactId) {
           failed++;
+          await this.log("WARN", `Skipping conversation ${conv.sourceId}: no matching GHL contact for source ID ${conv.contactSourceId}`);
           continue;
         }
 
+        // Build a single note body from all messages in the conversation
+        const noteLines: string[] = [];
+        noteLines.push(`--- Imported ${conv.channel.toUpperCase()} conversation (${conv.messages.length} messages) ---`);
+
         for (const msg of conv.messages) {
-          try {
-            await acquireRateLimit("conversations"); // separate bucket
+          const time = msg.timestamp.toISOString().replace("T", " ").slice(0, 19);
+          const dir = msg.direction === "inbound" ? "IN" : "OUT";
+          noteLines.push(`[${time}] [${dir}] ${msg.body}`);
+        }
 
-            const channelType = conv.channel === "email" ? "Email" : "SMS";
+        try {
+          await acquireRateLimit("conversations");
 
-            if (msg.direction === "inbound") {
-              await addInboundMessage(ghlClient, {
-                contactId: ghlContactId,
-                message: msg.body,
-                type: channelType,
-                date: msg.timestamp.toISOString(),
-              });
-            } else {
-              await addOutboundMessage(ghlClient, {
-                contactId: ghlContactId,
-                message: msg.body,
-                type: channelType,
-                date: msg.timestamp.toISOString(),
-              });
-            }
+          await addContactNote(ghlClient, {
+            contactId: ghlContactId,
+            body: noteLines.join("\n"),
+          });
 
-            processed++;
-          } catch {
-            failed++;
-          }
+          processed++;
+        } catch (error) {
+          failed++;
+          const message = error instanceof Error ? error.message : String(error);
+          await this.log("ERROR", `Failed to add conversation note for contact ${ghlContactId}: ${message}`);
         }
       }
     }
