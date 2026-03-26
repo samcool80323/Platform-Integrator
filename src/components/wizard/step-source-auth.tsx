@@ -132,7 +132,9 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
 
         // Auto-save and continue if test passed — no manual steps needed
         if (testData.valid) {
-          const autoLabel = `${connectorId} (OAuth ${new Date().toLocaleDateString()})`;
+          const autoLabel = testData.accountName
+            ? `${testData.accountName} (Podium)`
+            : `${connectorId} (OAuth ${new Date().toLocaleDateString()})`;
           const saveRes = await fetch("/api/connected-accounts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

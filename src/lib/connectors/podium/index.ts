@@ -91,7 +91,7 @@ export class PodiumConnector implements PlatformConnector {
 
   async validateCredentials(
     creds: Record<string, string>
-  ): Promise<{ valid: boolean; error?: string }> {
+  ): Promise<{ valid: boolean; error?: string; accountName?: string }> {
     try {
       const res = await fetch(`${PODIUM_API_BASE}/locations`, {
         headers: {
@@ -99,9 +99,16 @@ export class PodiumConnector implements PlatformConnector {
           Accept: "application/json",
         },
       });
-      if (res.ok) return { valid: true };
-      const text = await res.text().catch(() => "");
-      return { valid: false, error: `Podium API returned ${res.status}: ${text.slice(0, 200)}` };
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        return { valid: false, error: `Podium API returned ${res.status}: ${text.slice(0, 200)}` };
+      }
+      // Extract the first location name to use as the account label
+      const data = await res.json();
+      const locations = data.data || data.locations || [];
+      const firstLoc = locations[0] as { name?: string } | undefined;
+      const accountName = firstLoc?.name || "Podium Account";
+      return { valid: true, accountName };
     } catch {
       return { valid: false, error: "Could not connect to Podium API" };
     }

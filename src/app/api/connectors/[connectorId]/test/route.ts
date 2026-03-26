@@ -34,5 +34,9 @@ export async function POST(
   }
 
   const result = await connector.validateCredentials(credentials);
-  return NextResponse.json(result);
+  return NextResponse.json({
+    valid: result.valid,
+    error: result.error,
+    accountName: result.accountName,
+  });
 }

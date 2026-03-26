@@ -45,7 +45,7 @@ export interface PlatformConnector {
 
   validateCredentials(
     creds: Record<string, string>
-  ): Promise<{ valid: boolean; error?: string }>;
+  ): Promise<{ valid: boolean; error?: string; accountName?: string }>;
 
   discoverFields(creds: Record<string, string>): Promise<FieldSchema[]>;
 
