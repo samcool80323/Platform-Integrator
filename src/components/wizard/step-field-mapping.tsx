@@ -154,7 +154,7 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
                 {showRawPayload ? <ChevronUp className="ml-auto h-3.5 w-3.5" /> : <ChevronDown className="ml-auto h-3.5 w-3.5" />}
               </button>
               {showRawPayload && (
-                <pre className="max-h-64 overflow-auto p-4 text-[11px] leading-relaxed font-mono text-muted-foreground"
+                <pre className="max-h-[480px] overflow-auto p-4 text-[11px] leading-relaxed font-mono text-muted-foreground"
                   style={{ background: "var(--sidebar-bg)", color: "var(--sidebar-foreground)" }}>
                   {samplePayloadField.sampleValues[0]}
                 </pre>

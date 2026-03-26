@@ -162,7 +162,7 @@ export class PodiumConnector implements PlatformConnector {
       label: "Raw Podium Contact (for reference)",
       type: "text",
       isStandard: false,
-      sampleValues: [JSON.stringify(rawContacts[0], null, 2).slice(0, 500)],
+      sampleValues: [JSON.stringify(rawContacts[0], null, 2)],
     });
 
     return fields;
