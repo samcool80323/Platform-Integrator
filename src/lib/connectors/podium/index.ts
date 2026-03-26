@@ -6,9 +6,13 @@ import type {
   UniversalConversation,
   UniversalMessage,
 } from "../../universal-model/types";
-import { autoMapFields, inferFieldType } from "../base";
 
 const PODIUM_API_BASE = "https://api.podium.com/v4";
+
+// Fields that are internal Podium routing data — not useful for mapping to GHL
+const SKIP_FIELDS = new Set([
+  "id", "uid", "channels", "locations", "conversations", "createdAt", "updatedAt",
+]);
 
 const CREDENTIAL_GUIDE = `
 ## How to connect Podium
@@ -22,7 +26,7 @@ Podium uses a secure login (OAuth 2.0). You do NOT need to copy any keys — jus
 ### Step 1 — Log in to Podium
 1. Open your browser and go to **https://app.podium.com**
 2. Sign in with your Podium username and password
-3. ⚠️ You must be a **Podium Admin** — if you're not, ask your account owner
+3. You must be a **Podium Admin** — if you're not, ask your account owner
 
 ---
 
@@ -104,65 +108,66 @@ export class PodiumConnector implements PlatformConnector {
   }
 
   async discoverFields(creds: Record<string, string>): Promise<FieldSchema[]> {
-    // Fetch a sample of contacts to discover available fields
-    const res = await fetch(
-      `${PODIUM_API_BASE}/contacts?limit=5`,
-      {
-        headers: {
-          Authorization: `Bearer ${creds.accessToken}`,
-          Accept: "application/json",
-        },
-      }
-    );
+    const res = await fetch(`${PODIUM_API_BASE}/contacts?limit=5`, {
+      headers: {
+        Authorization: `Bearer ${creds.accessToken}`,
+        Accept: "application/json",
+      },
+    });
 
     if (!res.ok) throw new Error(`Podium API error: ${res.status}`);
     const data = await res.json();
-    const contacts = data.data || data.contacts || [];
+    const rawContacts = data.data || data.contacts || [];
 
-    // Collect all unique keys across sample contacts
+    if (rawContacts.length === 0) {
+      // Return basic known Podium fields even if no contacts exist yet
+      return getStaticPodiumFields();
+    }
+
+    // Flatten each contact to extract real values from nested objects
+    const flattened = rawContacts.map((c: Record<string, unknown>) => flattenPodiumContact(c));
+
+    // Collect unique keys with sample values
     const fieldMap = new Map<string, unknown[]>();
-    for (const contact of contacts) {
+    for (const contact of flattened) {
       for (const [key, value] of Object.entries(contact)) {
-        if (key === "id" || key === "uid") continue;
         if (!fieldMap.has(key)) fieldMap.set(key, []);
-        fieldMap.get(key)!.push(value);
+        if (value != null && value !== "") fieldMap.get(key)!.push(value);
       }
     }
 
     const fields: FieldSchema[] = [];
-    const standardKeys = new Set([
-      "name",
-      "firstName",
-      "lastName",
-      "email",
-      "phone",
-      "phoneNumber",
-    ]);
+    const standardKeys = new Set(["name", "firstName", "lastName", "email", "phone", "address", "tags", "companyName"]);
 
     for (const [key, values] of fieldMap) {
       fields.push({
         key,
-        label: key
-          .replace(/([A-Z])/g, " $1")
-          .replace(/[_-]/g, " ")
-          .trim(),
-        type: inferFieldType(values),
+        label: humanLabel(key),
+        type: inferType(values),
         isStandard: standardKeys.has(key),
-        sampleValues: values
-          .filter((v) => v != null)
-          .slice(0, 3)
-          .map(String),
+        sampleValues: values.slice(0, 3).map((v) => String(v).slice(0, 120)),
       });
     }
+
+    // Also stash the first raw contact as a special _samplePayload field for the UI
+    fields.push({
+      key: "_samplePayload",
+      label: "Raw Podium Contact (for reference)",
+      type: "text",
+      isStandard: false,
+      sampleValues: [JSON.stringify(rawContacts[0], null, 2).slice(0, 500)],
+    });
 
     return fields;
   }
 
   getDefaultFieldMapping(): FieldMapping[] {
     return [
-      { sourceField: "name", targetField: "firstName", targetType: "standard", transform: "none" },
+      { sourceField: "name", targetField: "firstName", targetType: "standard" },
       { sourceField: "email", targetField: "email", targetType: "standard" },
-      { sourceField: "phoneNumber", targetField: "phone", targetType: "standard" },
+      { sourceField: "phone", targetField: "phone", targetType: "standard" },
+      { sourceField: "address", targetField: "address1", targetType: "standard" },
+      { sourceField: "companyName", targetField: "companyName", targetType: "standard" },
       { sourceField: "tags", targetField: "tags", targetType: "standard" },
     ];
   }
@@ -190,9 +195,7 @@ export class PodiumConnector implements PlatformConnector {
 
       if (contacts.length === 0) break;
 
-      yield contacts.map((c: Record<string, unknown>) =>
-        mapPodiumContact(c)
-      );
+      yield contacts.map((c: Record<string, unknown>) => mapPodiumContact(c));
 
       cursor = data.metadata?.cursor || data.nextCursor;
     } while (cursor);
@@ -223,7 +226,6 @@ export class PodiumConnector implements PlatformConnector {
 
       const mapped: UniversalConversation[] = [];
       for (const conv of conversations) {
-        // Fetch messages for each conversation
         const msgRes = await fetch(
           `${PODIUM_API_BASE}/conversations/${conv.uid}/messages?limit=100`,
           {
@@ -258,30 +260,79 @@ export class PodiumConnector implements PlatformConnector {
   }
 }
 
+// ── Helpers ──────────────────────────────────────────────────────────
+
+/**
+ * Flatten a raw Podium contact into simple key-value pairs.
+ * Extracts real values from nested arrays/objects like emails, phoneNumbers, organization.
+ */
+function flattenPodiumContact(raw: Record<string, unknown>): Record<string, unknown> {
+  const flat: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(raw)) {
+    if (SKIP_FIELDS.has(key)) continue;
+
+    if (key === "emails" && Array.isArray(value)) {
+      // Extract first email address string
+      const emails = value as { value?: string; address?: string }[];
+      flat.email = emails[0]?.value || emails[0]?.address || "";
+    } else if (key === "phoneNumbers" && Array.isArray(value)) {
+      // Extract first phone number string
+      const phones = value as { value?: string; number?: string }[];
+      flat.phone = phones[0]?.value || phones[0]?.number || "";
+    } else if (key === "organization" && typeof value === "object" && value !== null) {
+      const org = value as { name?: string; uid?: string };
+      flat.companyName = org.name || "";
+    } else if (key === "address" && typeof value === "object" && value !== null) {
+      const addr = value as { streetAddress?: string; city?: string; state?: string; postalCode?: string };
+      flat.address = [addr.streetAddress, addr.city, addr.state, addr.postalCode].filter(Boolean).join(", ");
+    } else if (key === "attributes" && Array.isArray(value)) {
+      // Flatten attributes into individual fields prefixed with "attr_"
+      for (const attr of value as { key?: string; value?: string; label?: string }[]) {
+        const attrKey = attr.key || attr.label;
+        if (attrKey && attr.value) {
+          flat[`attr_${attrKey}`] = attr.value;
+        }
+      }
+    } else if (typeof value === "object" && value !== null) {
+      // For any other nested object, try to extract a meaningful string
+      const obj = value as Record<string, unknown>;
+      if (obj.name) flat[key] = String(obj.name);
+      else if (obj.value) flat[key] = String(obj.value);
+      // else skip — it's structural data not useful for contact fields
+    } else {
+      // Primitive value — keep as-is
+      flat[key] = value;
+    }
+  }
+
+  return flat;
+}
+
 function mapPodiumContact(raw: Record<string, unknown>): UniversalContact {
-  const name = String(raw.name || "");
+  const flat = flattenPodiumContact(raw);
+
+  const name = String(flat.name || "");
   const parts = name.split(" ");
   const firstName = parts[0] || "";
   const lastName = parts.slice(1).join(" ") || "";
 
   const customFields: Record<string, string | number | boolean> = {};
-  const standardKeys = new Set([
-    "id", "uid", "name", "email", "phoneNumber", "phone",
-    "firstName", "lastName", "tags", "createdAt", "updatedAt",
-  ]);
+  const standardKeys = new Set(["name", "email", "phone", "address", "companyName", "tags"]);
 
-  for (const [key, value] of Object.entries(raw)) {
-    if (!standardKeys.has(key) && value != null) {
+  for (const [key, value] of Object.entries(flat)) {
+    if (!standardKeys.has(key) && value != null && value !== "") {
       customFields[key] = typeof value === "object" ? JSON.stringify(value) : (value as string | number | boolean);
     }
   }
 
   return {
     sourceId: String(raw.uid || raw.id),
-    firstName: String(raw.firstName || firstName),
-    lastName: String(raw.lastName || lastName),
-    email: raw.email ? String(raw.email) : undefined,
-    phone: raw.phoneNumber ? String(raw.phoneNumber) : raw.phone ? String(raw.phone) : undefined,
+    firstName,
+    lastName,
+    email: flat.email ? String(flat.email) : undefined,
+    phone: flat.phone ? String(flat.phone) : undefined,
+    companyName: flat.companyName ? String(flat.companyName) : undefined,
     tags: Array.isArray(raw.tags) ? raw.tags.map(String) : undefined,
     customFields,
     source: "podium",
@@ -289,13 +340,45 @@ function mapPodiumContact(raw: Record<string, unknown>): UniversalContact {
   };
 }
 
-function mapChannel(
-  channel: string
-): "sms" | "email" | "chat" | "phone" | "other" {
+function mapChannel(channel: string): "sms" | "email" | "chat" | "phone" | "other" {
   const lower = channel.toLowerCase();
   if (lower.includes("sms") || lower.includes("text")) return "sms";
   if (lower.includes("email")) return "email";
   if (lower.includes("chat") || lower.includes("webchat")) return "chat";
   if (lower.includes("phone") || lower.includes("call")) return "phone";
   return "other";
+}
+
+function humanLabel(key: string): string {
+  return key
+    .replace(/^attr_/, "")
+    .replace(/([A-Z])/g, " $1")
+    .replace(/[_-]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
+}
+
+function inferType(values: unknown[]): FieldSchema["type"] {
+  if (values.length === 0) return "text";
+  const sample = values[0];
+  if (typeof sample === "boolean") return "boolean";
+  if (typeof sample === "number") return "number";
+  const str = String(sample);
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) return "date";
+  if (/^https?:\/\//.test(str)) return "url";
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str)) return "email";
+  if (/^\+?[\d\s()-]{7,}$/.test(str)) return "phone";
+  return "text";
+}
+
+/** Fallback fields if no contacts exist yet */
+function getStaticPodiumFields(): FieldSchema[] {
+  return [
+    { key: "name", label: "Name", type: "text", isStandard: true, sampleValues: ["John Smith"] },
+    { key: "email", label: "Email", type: "email", isStandard: true, sampleValues: ["john@example.com"] },
+    { key: "phone", label: "Phone", type: "phone", isStandard: true, sampleValues: ["+1234567890"] },
+    { key: "address", label: "Address", type: "text", isStandard: true, sampleValues: ["123 Main St, City, ST 12345"] },
+    { key: "companyName", label: "Company Name", type: "text", isStandard: true, sampleValues: ["Acme Corp"] },
+    { key: "tags", label: "Tags", type: "text", isStandard: true, sampleValues: ["lead, new"] },
+  ];
 }

@@ -36,8 +36,19 @@ export function applyFieldMappings(
   }
 
   // Always include tags if present
-  if (contact.tags && contact.tags.length > 0 && !result.tags) {
-    result.tags = contact.tags;
+  const existingTags = Array.isArray(result.tags) ? result.tags.map(String) :
+    typeof result.tags === "string" ? [result.tags] : [];
+  const contactTags = contact.tags || [];
+  const allTags = [...new Set([...existingTags, ...contactTags])];
+
+  // Auto-add source platform tag so you can always tell where a contact came from
+  if (contact.source) {
+    const sourceTag = `imported-from-${contact.source}`;
+    if (!allTags.includes(sourceTag)) allTags.push(sourceTag);
+  }
+
+  if (allTags.length > 0) {
+    result.tags = allTags;
   }
 
   return result as Partial<GHLContact>;
@@ -49,6 +60,7 @@ function getSourceValue(
 ): unknown {
   // Check direct properties first
   const directMap: Record<string, unknown> = {
+    name: [contact.firstName, contact.lastName].filter(Boolean).join(" "),
     firstName: contact.firstName,
     lastName: contact.lastName,
     email: contact.email,

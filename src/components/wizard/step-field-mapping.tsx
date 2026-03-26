@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ChevronLeft, ArrowRight, CheckCircle2, Loader2, AlertCircle, Info } from "lucide-react";
+import { ChevronLeft, ArrowRight, CheckCircle2, Loader2, AlertCircle, Info, Code, ChevronDown, ChevronUp } from "lucide-react";
 import type { FieldSchema, FieldMapping } from "@/lib/universal-model/types";
 
 const GHL_STANDARD_FIELDS = [
@@ -95,9 +95,14 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
     );
   }
 
+  // Separate the sample payload field from mappable fields
+  const samplePayloadField = fields.find((f) => f.key === "_samplePayload");
+  const mappableFields = fields.filter((f) => f.key !== "_samplePayload");
+
   const standardMapped = mappings.filter((m) => m.targetType === "standard").length;
   const customMapped = mappings.filter((m) => m.targetType === "custom").length;
-  const skipped = fields.length - mappings.length;
+  const skipped = mappableFields.length - mappings.length;
+  const [showRawPayload, setShowRawPayload] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -131,9 +136,31 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
             <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary" />
             <span>
               <strong className="text-foreground">Tip:</strong> &quot;Custom&quot; fields will be created as new
-              custom contact fields in GoHighLevel automatically.
+              custom contact fields in GoHighLevel automatically. Contacts are auto-tagged
+              with their source platform (e.g. <code className="text-primary">imported-from-podium</code>).
             </span>
           </div>
+
+          {/* Raw sample payload viewer */}
+          {samplePayloadField && samplePayloadField.sampleValues?.[0] && (
+            <div className="rounded-xl border border-border overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowRawPayload((p) => !p)}
+                className="flex w-full items-center gap-2 px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:bg-muted/50 transition-colors"
+              >
+                <Code className="h-3.5 w-3.5 text-primary" />
+                View raw sample contact from source
+                {showRawPayload ? <ChevronUp className="ml-auto h-3.5 w-3.5" /> : <ChevronDown className="ml-auto h-3.5 w-3.5" />}
+              </button>
+              {showRawPayload && (
+                <pre className="max-h-64 overflow-auto p-4 text-[11px] leading-relaxed font-mono text-muted-foreground"
+                  style={{ background: "var(--sidebar-bg)", color: "var(--sidebar-foreground)" }}>
+                  {samplePayloadField.sampleValues[0]}
+                </pre>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <div className="grid grid-cols-[1fr,auto,1fr,4.5rem] items-center gap-3 px-3 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/60">
@@ -144,7 +171,7 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
             </div>
 
             <div className="space-y-1.5">
-              {fields.map((field) => {
+              {mappableFields.map((field) => {
                 const mapping = mappings.find((m) => m.sourceField === field.key);
                 return (
                   <div
@@ -208,7 +235,7 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
 
           <div className="flex items-center justify-between border-t border-border pt-5">
             <p className="text-sm text-muted-foreground">
-              {mappings.length} of {fields.length} fields will be imported
+              {mappings.length} of {mappableFields.length} fields will be imported
             </p>
             <Button onClick={() => onConfirm(fields, mappings)} className="gap-2">
               Confirm Mapping
