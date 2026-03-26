@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ChevronLeft, ArrowRight, CheckCircle2, Loader2, AlertCircle, Info, Code, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronLeft, ArrowRight, CheckCircle2, Loader2, AlertCircle, Info, Code, ChevronDown, ChevronUp, Plus, Tag, X } from "lucide-react";
 import type { FieldSchema, FieldMapping } from "@/lib/universal-model/types";
 
 const GHL_STANDARD_FIELDS = [
@@ -27,7 +29,7 @@ interface StepFieldMappingProps {
   connectorId: string;
   credentials: Record<string, string>;
   credentialId?: string;
-  onConfirm: (fields: FieldSchema[], mappings: FieldMapping[]) => void;
+  onConfirm: (fields: FieldSchema[], mappings: FieldMapping[], extraTags?: string[], contactSource?: string) => void;
   onBack: () => void;
 }
 
@@ -37,6 +39,9 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showRawPayload, setShowRawPayload] = useState(false);
+  const [extraTags, setExtraTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+  const [contactSource, setContactSource] = useState(connectorId);
 
   useEffect(() => {
     fetch(`/api/connectors/${connectorId}/discover`, {
@@ -47,7 +52,7 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
       .then(async (r) => { if (!r.ok) throw new Error("Failed to discover fields"); return r.json(); })
       .then((data) => { setFields(data.fields || []); setMappings(data.mappings || []); setLoading(false); })
       .catch((err) => { setError(err.message); setLoading(false); });
-  }, [connectorId, credentials]);
+  }, [connectorId, credentials, credentialId]);
 
   function updateMapping(sourceField: string, targetField: string) {
     setMappings((prev) => {
@@ -67,10 +72,18 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
     setMappings((prev) => prev.filter((m) => m.sourceField !== sourceField));
   }
 
+  function addTag() {
+    const tag = tagInput.trim();
+    if (tag && !extraTags.includes(tag)) {
+      setExtraTags((prev) => [...prev, tag]);
+      setTagInput("");
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-20 text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <Loader2 className="h-6 w-6 animate-spin text-foreground" />
         <div className="text-center">
           <p className="font-semibold text-foreground">Discovering fields...</p>
           <p className="mt-1 text-sm">This may take a moment.</p>
@@ -96,12 +109,11 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
     );
   }
 
-  // Separate the sample payload field from mappable fields
   const samplePayloadField = fields.find((f) => f.key === "_samplePayload");
   const mappableFields = fields.filter((f) => f.key !== "_samplePayload");
 
   const standardMapped = mappings.filter((m) => m.targetType === "standard").length;
-  const customMapped = mappings.filter((m) => m.targetType === "custom").length;
+  const customMappings = mappings.filter((m) => m.targetType === "custom");
   const skipped = mappableFields.length - mappings.length;
 
   return (
@@ -114,57 +126,72 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
         <CardHeader>
           <CardTitle>Field Mapping</CardTitle>
           <CardDescription>
-            Map source fields to GHL contact fields. Auto-matched where possible.
-            Use the dropdown to change mappings, skip fields, or create custom GHL fields.
+            Review how source fields map to GHL. Auto-matched where possible.
+            Change any mapping with the dropdown, or select &quot;Create Custom Field&quot; to auto-create it in GHL.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
+          {/* Summary */}
           <div className="flex flex-wrap gap-2">
             <Badge variant="secondary" className="gap-1.5 text-xs px-3 py-1 rounded-lg">
               <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-              {standardMapped} mapped
+              {standardMapped} standard
             </Badge>
-            <Badge variant="secondary" className="gap-1.5 text-xs px-3 py-1 rounded-lg text-zinc-600 dark:text-zinc-400">
-              {customMapped} custom
-            </Badge>
+            {customMappings.length > 0 && (
+              <Badge variant="outline" className="gap-1.5 text-xs px-3 py-1 rounded-lg">
+                <Plus className="h-3 w-3" />
+                {customMappings.length} custom (will be created)
+              </Badge>
+            )}
             <Badge variant="secondary" className="gap-1.5 text-xs px-3 py-1 rounded-lg">
               {skipped} skipped
             </Badge>
           </div>
 
-          <div className="flex items-start gap-2 rounded-xl bg-secondary/60 border border-primary/10 p-3 text-xs text-muted-foreground">
-            <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary" />
+          {/* Custom fields that will be created */}
+          {customMappings.length > 0 && (
+            <div className="rounded-xl border border-border bg-muted/50 p-4 space-y-2">
+              <p className="text-xs font-semibold text-foreground">Custom fields to be created in GHL:</p>
+              <div className="flex flex-wrap gap-1.5">
+                {customMappings.map((m) => (
+                  <span key={m.sourceField} className="inline-flex items-center rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground">
+                    {m.targetField.replace("custom:", "")}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-start gap-2 rounded-xl bg-muted/50 border border-border p-3 text-xs text-muted-foreground">
+            <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-foreground" />
             <span>
-              <strong className="text-foreground">Tip:</strong> &quot;Custom&quot; fields will be created as new
-              custom contact fields in GoHighLevel automatically. Contacts are auto-tagged
-              with their source platform (e.g. <code className="text-primary">imported-from-podium</code>).
+              Contacts are auto-tagged <code className="rounded bg-secondary px-1 py-0.5 text-foreground text-[11px]">imported-from-{connectorId}</code>.
+              Add more tags or set a contact source below.
             </span>
           </div>
 
-          {/* Raw sample payload viewer */}
+          {/* Raw payload viewer */}
           {samplePayloadField && samplePayloadField.sampleValues?.[0] && (
             <div className="rounded-xl border border-border overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setShowRawPayload((p) => !p)}
-                className="flex w-full items-center gap-2 px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:bg-muted/50 transition-colors"
-              >
-                <Code className="h-3.5 w-3.5 text-primary" />
+              <button type="button" onClick={() => setShowRawPayload((p) => !p)}
+                className="flex w-full items-center gap-2 px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:bg-muted/50 transition-colors">
+                <Code className="h-3.5 w-3.5" />
                 View raw sample contact from source
                 {showRawPayload ? <ChevronUp className="ml-auto h-3.5 w-3.5" /> : <ChevronDown className="ml-auto h-3.5 w-3.5" />}
               </button>
               {showRawPayload && (
-                <pre className="max-h-[480px] overflow-auto p-4 text-[11px] leading-relaxed font-mono text-muted-foreground"
-                  style={{ background: "var(--sidebar-bg)", color: "var(--sidebar-foreground)" }}>
+                <pre className="max-h-[480px] overflow-auto p-4 text-[11px] leading-relaxed font-mono"
+                  style={{ background: "#09090b", color: "#a1a1aa" }}>
                   {samplePayloadField.sampleValues[0]}
                 </pre>
               )}
             </div>
           )}
 
+          {/* Mapping table */}
           <div className="space-y-2">
-            <div className="grid grid-cols-[1fr,auto,1fr,4.5rem] items-center gap-3 px-3 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/60">
-              <span>Source</span>
+            <div className="grid grid-cols-[1fr,auto,1fr,5rem] items-center gap-3 px-3 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+              <span>Source Field</span>
               <span />
               <span>GHL Field</span>
               <span className="text-right">Status</span>
@@ -174,26 +201,25 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
               {mappableFields.map((field) => {
                 const mapping = mappings.find((m) => m.sourceField === field.key);
                 return (
-                  <div
-                    key={field.key}
-                    className="grid grid-cols-[1fr,auto,1fr,4.5rem] items-center gap-3 rounded-xl border border-border p-3 transition-all hover:border-primary/15 hover:shadow-sm"
-                  >
+                  <div key={field.key}
+                    className="grid grid-cols-[1fr,auto,1fr,5rem] items-center gap-3 rounded-xl border border-border p-3 transition-all hover:shadow-sm">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate">{field.label}</p>
+                      <p className="text-sm font-medium text-foreground truncate">{field.label}</p>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[10px] text-muted-foreground/50 font-mono">{field.type}</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">{field.type}</span>
                         {field.sampleValues?.[0] && (
-                          <span className="truncate text-[10px] text-muted-foreground/40">
+                          <span className="truncate text-[10px] text-muted-foreground/60">
                             e.g. {field.sampleValues[0]}
                           </span>
                         )}
                       </div>
                     </div>
 
-                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/20 shrink-0" />
+                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0" />
 
+                    {/* Fixed dark-mode select */}
                     <select
-                      className="w-full rounded-xl border border-input bg-card px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all cursor-pointer"
+                      className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-all cursor-pointer [&_option]:bg-background [&_option]:text-foreground"
                       value={mapping?.targetField || "skip"}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -217,8 +243,8 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
                         </span>
                       )}
                       {mapping?.targetType === "custom" && (
-                        <span className="inline-flex items-center rounded-lg bg-zinc-500/8 px-2 py-0.5 text-[10px] font-bold text-zinc-600 dark:text-zinc-400">
-                          custom
+                        <span className="inline-flex items-center rounded-lg border border-border px-2 py-0.5 text-[10px] font-bold text-foreground">
+                          + custom
                         </span>
                       )}
                       {!mapping && (
@@ -233,11 +259,63 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
             </div>
           </div>
 
+          {/* Extra settings: tags and source */}
+          <div className="rounded-xl border border-border p-5 space-y-5">
+            <p className="text-sm font-semibold text-foreground">Additional Settings</p>
+
+            {/* Custom tags */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">Extra Tags (added to every contact)</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="e.g. imported, Q1-2026"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
+                  className="flex-1"
+                />
+                <Button variant="outline" size="sm" onClick={addTag} disabled={!tagInput.trim()}>
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              {extraTags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {extraTags.map((tag) => (
+                    <span key={tag} className="inline-flex items-center gap-1 rounded-lg border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+                      <Tag className="h-3 w-3 text-muted-foreground" />
+                      {tag}
+                      <button onClick={() => setExtraTags((p) => p.filter((t) => t !== tag))} className="text-muted-foreground hover:text-foreground ml-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                <code className="rounded bg-secondary px-1 py-0.5 text-[10px]">imported-from-{connectorId}</code> is always added automatically.
+              </p>
+            </div>
+
+            {/* Contact source */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">Contact Source (GHL source field)</Label>
+              <Input
+                placeholder="e.g. Podium Import"
+                value={contactSource}
+                onChange={(e) => setContactSource(e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Sets the &quot;Source&quot; field on each contact in GHL. Helps track where leads came from.
+              </p>
+            </div>
+          </div>
+
+          {/* Footer */}
           <div className="flex items-center justify-between border-t border-border pt-5">
             <p className="text-sm text-muted-foreground">
               {mappings.length} of {mappableFields.length} fields will be imported
             </p>
-            <Button onClick={() => onConfirm(fields, mappings)} className="gap-2">
+            <Button onClick={() => onConfirm(fields, mappings, extraTags, contactSource)} className="gap-2">
               Confirm Mapping
               <ArrowRight className="h-4 w-4" />
             </Button>

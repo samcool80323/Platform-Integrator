@@ -37,10 +37,16 @@ export async function POST(
 
     const fields = await connector.discoverFields(credentials);
 
-    let mappings = connector.getDefaultFieldMapping();
-    if (mappings.length === 0) {
-      mappings = autoMapFields(fields);
-    }
+    // Always auto-map all discovered fields first, then overlay connector defaults
+    const autoMapped = autoMapFields(fields);
+    const defaults = connector.getDefaultFieldMapping();
+
+    // Defaults take priority — override auto-mapped entries
+    const defaultKeys = new Set(defaults.map((d) => d.sourceField));
+    const mappings = [
+      ...defaults,
+      ...autoMapped.filter((m) => !defaultKeys.has(m.sourceField)),
+    ];
 
     return NextResponse.json({ fields, mappings });
   } catch (error) {

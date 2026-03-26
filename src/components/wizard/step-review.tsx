@@ -13,6 +13,8 @@ import {
   MapPin,
   Columns3,
   Loader2,
+  Tag,
+  Plus,
 } from "lucide-react";
 import type { FieldMapping, FieldSchema } from "@/lib/universal-model/types";
 
@@ -27,6 +29,8 @@ interface WizardState {
   fields: FieldSchema[];
   fieldMappings: FieldMapping[];
   options: Record<string, boolean>;
+  extraTags?: string[];
+  contactSource?: string;
 }
 
 interface StepReviewProps {
@@ -37,9 +41,11 @@ interface StepReviewProps {
 
 export function StepReview({ state, onStart, onBack }: StepReviewProps) {
   const [starting, setStarting] = useState(false);
+  const [showAllMappings, setShowAllMappings] = useState(false);
 
   const standardMappings = state.fieldMappings.filter((m) => m.targetType === "standard");
   const customMappings = state.fieldMappings.filter((m) => m.targetType === "custom");
+  const displayMappings = showAllMappings ? state.fieldMappings : state.fieldMappings.slice(0, 10);
 
   async function handleStart() {
     setStarting(true);
@@ -62,8 +68,8 @@ export function StepReview({ state, onStart, onBack }: StepReviewProps) {
         <CardContent className="space-y-6">
           {/* Source & Dest */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-border p-5 bg-secondary/30">
-              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/60 mb-3">
+            <div className="rounded-xl border border-border p-5">
+              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-3">
                 <Database className="h-3.5 w-3.5" />
                 Source
               </div>
@@ -72,8 +78,8 @@ export function StepReview({ state, onStart, onBack }: StepReviewProps) {
                 <p className="mt-1 text-sm text-muted-foreground">{state.credentialLabel}</p>
               )}
             </div>
-            <div className="rounded-xl border border-border p-5 bg-secondary/30">
-              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/60 mb-3">
+            <div className="rounded-xl border border-border p-5">
+              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-3">
                 <MapPin className="h-3.5 w-3.5" />
                 Destination
               </div>
@@ -81,9 +87,32 @@ export function StepReview({ state, onStart, onBack }: StepReviewProps) {
             </div>
           </div>
 
+          {/* Tags & Source */}
+          <div className="rounded-xl border border-border p-5 space-y-3">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+              <Tag className="h-3.5 w-3.5" />
+              Tags & Source
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <span className="inline-flex items-center rounded-lg border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+                imported-from-{state.connectorId}
+              </span>
+              {(state.extraTags || []).map((tag) => (
+                <span key={tag} className="inline-flex items-center rounded-lg border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+                  {tag}
+                </span>
+              ))}
+            </div>
+            {state.contactSource && (
+              <p className="text-sm text-muted-foreground">
+                Contact source: <span className="font-medium text-foreground">{state.contactSource}</span>
+              </p>
+            )}
+          </div>
+
           {/* Mappings */}
           <div className="rounded-xl border border-border p-5 space-y-4">
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/60">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
               <Columns3 className="h-3.5 w-3.5" />
               Field Mappings
             </div>
@@ -92,25 +121,32 @@ export function StepReview({ state, onStart, onBack }: StepReviewProps) {
                 <CheckCircle2 className="h-3 w-3 text-emerald-500" />
                 {standardMappings.length} standard
               </Badge>
-              <Badge variant="secondary" className="gap-1.5 text-xs px-3 py-1 rounded-lg text-zinc-600 dark:text-zinc-400">
-                {customMappings.length} custom
-              </Badge>
+              {customMappings.length > 0 && (
+                <Badge variant="outline" className="gap-1.5 text-xs px-3 py-1 rounded-lg">
+                  <Plus className="h-3 w-3" />
+                  {customMappings.length} custom fields to create
+                </Badge>
+              )}
             </div>
-            <div className="rounded-xl bg-secondary/60 p-3.5 space-y-2">
-              {state.fieldMappings.slice(0, 8).map((m) => (
+            <div className="rounded-xl bg-muted/50 p-3.5 space-y-1.5">
+              {displayMappings.map((m) => (
                 <div key={m.sourceField} className="flex items-center gap-2 text-sm">
                   <span className="text-muted-foreground truncate min-w-0">{m.sourceField}</span>
                   <ArrowRight className="h-3 w-3 text-muted-foreground/30 shrink-0" />
-                  <span className="font-semibold text-foreground truncate min-w-0">{m.targetField.replace("custom:", "")}</span>
+                  <span className="font-medium text-foreground truncate min-w-0">{m.targetField.replace("custom:", "")}</span>
                   {m.targetType === "custom" && (
-                    <span className="inline-flex items-center rounded-md bg-zinc-500/8 px-1.5 py-0.5 text-[10px] font-bold text-zinc-500 shrink-0">new</span>
+                    <span className="inline-flex items-center rounded-md border border-border px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground shrink-0">new</span>
                   )}
                 </div>
               ))}
-              {state.fieldMappings.length > 8 && (
-                <p className="text-xs text-muted-foreground pt-1">
-                  + {state.fieldMappings.length - 8} more
-                </p>
+              {!showAllMappings && state.fieldMappings.length > 10 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllMappings(true)}
+                  className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors pt-1"
+                >
+                  Show all {state.fieldMappings.length} mappings
+                </button>
               )}
             </div>
           </div>
@@ -118,11 +154,10 @@ export function StepReview({ state, onStart, onBack }: StepReviewProps) {
           {/* Start */}
           <div className="border-t border-border pt-6">
             <Button
-              variant="accent"
               size="lg"
               onClick={handleStart}
               disabled={starting}
-              className="w-full h-13 text-[15px] gap-2.5"
+              className="w-full h-12 text-[15px] gap-2.5"
             >
               {starting ? (
                 <><Loader2 className="h-5 w-5 animate-spin" /> Starting Migration...</>

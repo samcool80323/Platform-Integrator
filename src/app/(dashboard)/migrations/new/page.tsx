@@ -21,6 +21,8 @@ interface WizardState {
   fields: FieldSchema[];
   fieldMappings: FieldMapping[];
   options: Record<string, boolean>;
+  extraTags?: string[];
+  contactSource?: string;
 }
 
 const STEPS = [
@@ -75,6 +77,8 @@ export default function NewMigrationPage() {
         fieldMappings: state.fieldMappings,
         options: state.options || {},
         credentialLabel: state.credentialLabel || `${state.connectorName} Import`,
+        extraTags: state.extraTags || [],
+        contactSource: state.contactSource || state.connectorId,
       };
       if (state.credentialId) {
         body.credentialId = state.credentialId;
@@ -119,9 +123,9 @@ export default function NewMigrationPage() {
                 <div
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all duration-200 ${
                     done
-                      ? "gradient-primary text-white shadow-sm shadow-sm"
+                      ? "bg-emerald-600 text-white shadow-sm"
                       : active
-                        ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+                        ? "bg-foreground text-background shadow-sm"
                         : "bg-muted text-muted-foreground"
                   }`}
                 >
@@ -137,7 +141,7 @@ export default function NewMigrationPage() {
               </div>
               {i < STEPS.length - 1 && (
                 <div className="flex-1 mx-1">
-                  <div className={`h-px w-full transition-colors ${done ? "bg-primary" : "bg-border"}`} />
+                  <div className={`h-px w-full transition-colors ${done ? "bg-emerald-500" : "bg-border"}`} />
                 </div>
               )}
             </div>
@@ -191,8 +195,8 @@ export default function NewMigrationPage() {
             connectorId={state.connectorId}
             credentials={state.credentials || {}}
             credentialId={state.credentialId}
-            onConfirm={(fields, mappings) => {
-              updateState({ fields, fieldMappings: mappings });
+            onConfirm={(fields, mappings, extraTags, contactSource) => {
+              updateState({ fields, fieldMappings: mappings, extraTags, contactSource });
               setStep(4);
             }}
             onBack={() => setStep(2)}
