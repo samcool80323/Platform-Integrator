@@ -41,9 +41,9 @@ export function applyFieldMappings(
   const contactTags = contact.tags || [];
   const allTags = [...new Set([...existingTags, ...contactTags])];
 
-  // Auto-add source platform tag so you can always tell where a contact came from
+  // Auto-add source platform tag (just the name: "podium", "hubspot", etc.)
   if (contact.source) {
-    const sourceTag = `imported-from-${contact.source}`;
+    const sourceTag = contact.source;
     if (!allTags.includes(sourceTag)) allTags.push(sourceTag);
   }
 

@@ -5,6 +5,7 @@ import type { PlatformConnector, AuthConfig, ConnectorCapabilities } from "./typ
  * GHL standard contact fields that source fields can map to.
  */
 export const GHL_STANDARD_FIELDS: Record<string, string> = {
+  name: "Full Name",
   firstName: "First Name",
   lastName: "Last Name",
   email: "Email",

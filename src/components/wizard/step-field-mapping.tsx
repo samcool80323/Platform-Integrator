@@ -10,6 +10,7 @@ import { ChevronLeft, ArrowRight, CheckCircle2, Loader2, AlertCircle, Info, Code
 import type { FieldSchema, FieldMapping } from "@/lib/universal-model/types";
 
 const GHL_STANDARD_FIELDS = [
+  { key: "name", label: "Full Name" },
   { key: "firstName", label: "First Name" },
   { key: "lastName", label: "Last Name" },
   { key: "email", label: "Email" },
@@ -165,7 +166,7 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
           <div className="flex items-start gap-2 rounded-xl bg-muted/50 border border-border p-3 text-xs text-muted-foreground">
             <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-foreground" />
             <span>
-              Contacts are auto-tagged <code className="rounded bg-secondary px-1 py-0.5 text-foreground text-[11px]">imported-from-{connectorId}</code>.
+              Contacts are auto-tagged <code className="rounded bg-secondary px-1 py-0.5 text-foreground text-[11px]">{connectorId}</code>.
               Add more tags or set a contact source below.
             </span>
           </div>
@@ -292,7 +293,7 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
                 </div>
               )}
               <p className="text-[11px] text-muted-foreground">
-                <code className="rounded bg-secondary px-1 py-0.5 text-[10px]">imported-from-{connectorId}</code> is always added automatically.
+                <code className="rounded bg-secondary px-1 py-0.5 text-[10px]">{connectorId}</code> is always added automatically.
               </p>
             </div>
 

@@ -95,7 +95,7 @@ export function StepReview({ state, onStart, onBack }: StepReviewProps) {
             </div>
             <div className="flex flex-wrap gap-1.5">
               <span className="inline-flex items-center rounded-lg border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
-                imported-from-{state.connectorId}
+                {state.connectorId}
               </span>
               {(state.extraTags || []).map((tag) => (
                 <span key={tag} className="inline-flex items-center rounded-lg border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground">

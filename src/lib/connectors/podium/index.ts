@@ -9,57 +9,22 @@ import type {
 
 const PODIUM_API_BASE = "https://api.podium.com/v4";
 
-// Fields that are internal Podium routing data — not useful for mapping to GHL
+// Internal structural fields — never show in field mapping
 const SKIP_FIELDS = new Set([
-  "id", "uid", "channels", "locations", "conversations", "createdAt", "updatedAt",
+  "uid", "createdAt", "updatedAt", "locations", "conversations", "organization",
 ]);
 
-const CREDENTIAL_GUIDE = `
-## How to connect Podium
+const CREDENTIAL_GUIDE = `## How to connect Podium
 
-Podium uses a secure login (OAuth 2.0). You do NOT need to copy any keys — just click "Connect with Podium" and log in.
+Podium uses OAuth 2.0. Click "Connect with Podium" and log in — no keys to copy.
 
-**But first**, you need to register your Platform Integrator as an app in Podium. Here's exactly how:
+**First**, register Platform Integrator as an app in Podium:
 
----
-
-### Step 1 — Log in to Podium
-1. Open your browser and go to **https://app.podium.com**
-2. Sign in with your Podium username and password
-3. You must be a **Podium Admin** — if you're not, ask your account owner
-
----
-
-### Step 2 — Go to Developer Settings
-1. Click your **profile picture or company name** in the top-right corner
-2. Select **"Settings"** from the dropdown
-3. In the left sidebar, scroll down and click **"Integrations"**
-4. Then click **"API"** or **"Developer"**
-
----
-
-### Step 3 — Create a New App
-1. Click **"Create New Application"** (or **"+ New App"**)
-2. Fill in the form:
-   - **App Name:** Platform Integrator
-   - **Redirect URI:** copy the redirect URI shown in your Platform Integrator Settings page (under Podium setup)
-3. Click **"Save"** or **"Create"**
-
----
-
-### Step 4 — Copy your Client ID and Client Secret
-After saving, Podium will show you:
-- **Client ID** — looks like: \`abc123def456...\`
-- **Client Secret** — looks like: \`xyz789...\` (treat this like a password!)
-
-Go to **Platform Integrator Settings → Connectors** and enter these two values for Podium.
-
----
-
-### Step 5 — Connect!
-Come back here and click **"Connect with Podium"**. You'll be taken to the Podium login page. Sign in and approve the connection.
-
-> **Stuck?** Make sure the Redirect URI is copied exactly — even a single extra space will break it.
+1. Go to **https://app.podium.com** and sign in (must be Admin)
+2. Settings → Integrations → API/Developer
+3. Create New Application, set the **Redirect URI** from your Settings page
+4. Copy the **Client ID** and **Client Secret** into Platform Integrator Settings
+5. Come back here and click **Connect with Podium**
 `;
 
 export class PodiumConnector implements PlatformConnector {
@@ -94,21 +59,16 @@ export class PodiumConnector implements PlatformConnector {
   ): Promise<{ valid: boolean; error?: string; accountName?: string }> {
     try {
       const res = await fetch(`${PODIUM_API_BASE}/locations`, {
-        headers: {
-          Authorization: `Bearer ${creds.accessToken}`,
-          Accept: "application/json",
-        },
+        headers: { Authorization: `Bearer ${creds.accessToken}`, Accept: "application/json" },
       });
       if (!res.ok) {
         const text = await res.text().catch(() => "");
         return { valid: false, error: `Podium API returned ${res.status}: ${text.slice(0, 200)}` };
       }
-      // Extract the first location name to use as the account label
       const data = await res.json();
       const locations = data.data || data.locations || [];
       const firstLoc = locations[0] as { name?: string } | undefined;
-      const accountName = firstLoc?.name || "Podium Account";
-      return { valid: true, accountName };
+      return { valid: true, accountName: firstLoc?.name || "Podium Account" };
     } catch {
       return { valid: false, error: "Could not connect to Podium API" };
     }
@@ -116,25 +76,17 @@ export class PodiumConnector implements PlatformConnector {
 
   async discoverFields(creds: Record<string, string>): Promise<FieldSchema[]> {
     const res = await fetch(`${PODIUM_API_BASE}/contacts?limit=5`, {
-      headers: {
-        Authorization: `Bearer ${creds.accessToken}`,
-        Accept: "application/json",
-      },
+      headers: { Authorization: `Bearer ${creds.accessToken}`, Accept: "application/json" },
     });
 
     if (!res.ok) throw new Error(`Podium API error: ${res.status}`);
     const data = await res.json();
     const rawContacts = data.data || data.contacts || [];
 
-    if (rawContacts.length === 0) {
-      // Return basic known Podium fields even if no contacts exist yet
-      return getStaticPodiumFields();
-    }
+    if (rawContacts.length === 0) return getStaticPodiumFields();
 
-    // Flatten each contact to extract real values from nested objects
-    const flattened = rawContacts.map((c: Record<string, unknown>) => flattenPodiumContact(c));
-
-    // Collect unique keys with sample values
+    // Flatten all contacts and collect fields with samples
+    const flattened = rawContacts.map((c: Record<string, unknown>) => flattenForDiscovery(c));
     const fieldMap = new Map<string, unknown[]>();
     for (const contact of flattened) {
       for (const [key, value] of Object.entries(contact)) {
@@ -143,8 +95,8 @@ export class PodiumConnector implements PlatformConnector {
       }
     }
 
+    const standardKeys = new Set(["name", "email", "phone", "tags"]);
     const fields: FieldSchema[] = [];
-    const standardKeys = new Set(["name", "firstName", "lastName", "email", "phone", "address", "tags", "companyName"]);
 
     for (const [key, values] of fieldMap) {
       fields.push({
@@ -152,11 +104,11 @@ export class PodiumConnector implements PlatformConnector {
         label: humanLabel(key),
         type: inferType(values),
         isStandard: standardKeys.has(key),
-        sampleValues: values.slice(0, 3).map((v) => String(v).slice(0, 120)),
+        sampleValues: values.slice(0, 3).map((v) => String(v).slice(0, 150)),
       });
     }
 
-    // Also stash the first raw contact as a special _samplePayload field for the UI
+    // Raw sample for reference
     fields.push({
       key: "_samplePayload",
       label: "Raw Podium Contact (for reference)",
@@ -170,11 +122,9 @@ export class PodiumConnector implements PlatformConnector {
 
   getDefaultFieldMapping(): FieldMapping[] {
     return [
-      { sourceField: "name", targetField: "firstName", targetType: "standard" },
+      { sourceField: "name", targetField: "name", targetType: "standard" },
       { sourceField: "email", targetField: "email", targetType: "standard" },
       { sourceField: "phone", targetField: "phone", targetType: "standard" },
-      { sourceField: "address", targetField: "address1", targetType: "standard" },
-      { sourceField: "companyName", targetField: "companyName", targetType: "standard" },
       { sourceField: "tags", targetField: "tags", targetType: "standard" },
     ];
   }
@@ -183,27 +133,20 @@ export class PodiumConnector implements PlatformConnector {
     creds: Record<string, string>
   ): AsyncGenerator<UniversalContact[], void, unknown> {
     let cursor: string | undefined;
-
     do {
       const url = new URL(`${PODIUM_API_BASE}/contacts`);
       url.searchParams.set("limit", "100");
       if (cursor) url.searchParams.set("cursor", cursor);
 
       const res = await fetch(url.toString(), {
-        headers: {
-          Authorization: `Bearer ${creds.accessToken}`,
-          Accept: "application/json",
-        },
+        headers: { Authorization: `Bearer ${creds.accessToken}`, Accept: "application/json" },
       });
-
       if (!res.ok) throw new Error(`Podium contacts API error: ${res.status}`);
       const data = await res.json();
       const contacts = data.data || data.contacts || [];
-
       if (contacts.length === 0) break;
 
       yield contacts.map((c: Record<string, unknown>) => mapPodiumContact(c));
-
       cursor = data.metadata?.cursor || data.nextCursor;
     } while (cursor);
   }
@@ -212,37 +155,25 @@ export class PodiumConnector implements PlatformConnector {
     creds: Record<string, string>
   ): AsyncGenerator<UniversalConversation[], void, unknown> {
     let cursor: string | undefined;
-
     do {
       const url = new URL(`${PODIUM_API_BASE}/conversations`);
       url.searchParams.set("limit", "50");
       if (cursor) url.searchParams.set("cursor", cursor);
 
       const res = await fetch(url.toString(), {
-        headers: {
-          Authorization: `Bearer ${creds.accessToken}`,
-          Accept: "application/json",
-        },
+        headers: { Authorization: `Bearer ${creds.accessToken}`, Accept: "application/json" },
       });
-
       if (!res.ok) throw new Error(`Podium conversations API error: ${res.status}`);
       const data = await res.json();
       const conversations = data.data || [];
-
       if (conversations.length === 0) break;
 
       const mapped: UniversalConversation[] = [];
       for (const conv of conversations) {
         const msgRes = await fetch(
           `${PODIUM_API_BASE}/conversations/${conv.uid}/messages?limit=100`,
-          {
-            headers: {
-              Authorization: `Bearer ${creds.accessToken}`,
-              Accept: "application/json",
-            },
-          }
+          { headers: { Authorization: `Bearer ${creds.accessToken}`, Accept: "application/json" } }
         );
-
         const msgData = msgRes.ok ? await msgRes.json() : { data: [] };
         const messages: UniversalMessage[] = (msgData.data || []).map(
           (m: Record<string, unknown>) => ({
@@ -252,7 +183,6 @@ export class PodiumConnector implements PlatformConnector {
             timestamp: new Date(String(m.createdAt || m.sentAt)),
           })
         );
-
         mapped.push({
           sourceId: String(conv.uid || conv.id),
           contactSourceId: String(conv.contactUid || conv.contactId || ""),
@@ -260,7 +190,6 @@ export class PodiumConnector implements PlatformConnector {
           messages,
         });
       }
-
       yield mapped;
       cursor = data.metadata?.cursor || data.nextCursor;
     } while (cursor);
@@ -270,45 +199,53 @@ export class PodiumConnector implements PlatformConnector {
 // ── Helpers ──────────────────────────────────────────────────────────
 
 /**
- * Flatten a raw Podium contact into simple key-value pairs.
- * Extracts real values from nested arrays/objects like emails, phoneNumbers, organization.
+ * Flatten a raw Podium contact for field DISCOVERY.
+ * Extracts each attribute as its own field, handles channels/phoneNumbers/emails properly.
  */
-function flattenPodiumContact(raw: Record<string, unknown>): Record<string, unknown> {
+function flattenForDiscovery(raw: Record<string, unknown>): Record<string, unknown> {
   const flat: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(raw)) {
     if (SKIP_FIELDS.has(key)) continue;
 
-    if (key === "emails" && Array.isArray(value)) {
-      // Extract first email address string
-      const emails = value as { value?: string; address?: string }[];
-      flat.email = emails[0]?.value || emails[0]?.address || "";
+    if (key === "name" && value) {
+      flat.name = String(value);
+    } else if (key === "emails" && Array.isArray(value)) {
+      // emails can be array of strings or objects
+      if (value.length > 0) {
+        const first = value[0];
+        flat.email = typeof first === "string" ? first : (first as Record<string, unknown>)?.value || (first as Record<string, unknown>)?.address || "";
+      }
     } else if (key === "phoneNumbers" && Array.isArray(value)) {
-      // Extract first phone number string
-      const phones = value as { value?: string; number?: string }[];
-      flat.phone = phones[0]?.value || phones[0]?.number || "";
-    } else if (key === "organization" && typeof value === "object" && value !== null) {
-      const org = value as { name?: string; uid?: string };
-      flat.companyName = org.name || "";
-    } else if (key === "address" && typeof value === "object" && value !== null) {
-      const addr = value as { streetAddress?: string; city?: string; state?: string; postalCode?: string };
-      flat.address = [addr.streetAddress, addr.city, addr.state, addr.postalCode].filter(Boolean).join(", ");
-    } else if (key === "attributes" && Array.isArray(value)) {
-      // Flatten attributes into individual fields prefixed with "attr_"
-      for (const attr of value as { key?: string; value?: string; label?: string }[]) {
-        const attrKey = attr.key || attr.label;
-        if (attrKey && attr.value) {
-          flat[`attr_${attrKey}`] = attr.value;
+      // phoneNumbers is array of strings like ["+61423685185"]
+      if (value.length > 0) {
+        flat.phone = typeof value[0] === "string" ? value[0] : String((value[0] as Record<string, unknown>)?.value || value[0]);
+      }
+    } else if (key === "channels" && Array.isArray(value)) {
+      // channels has type + identifier — extract phone/email if not already set
+      for (const ch of value as { type?: string; identifier?: string }[]) {
+        if (ch.type === "PHONE" && ch.identifier && !flat.phone) {
+          flat.phone = ch.identifier;
+        } else if (ch.type === "EMAIL" && ch.identifier && !flat.email) {
+          flat.email = ch.identifier;
         }
       }
-    } else if (typeof value === "object" && value !== null) {
-      // For any other nested object, try to extract a meaningful string
-      const obj = value as Record<string, unknown>;
-      if (obj.name) flat[key] = String(obj.name);
-      else if (obj.value) flat[key] = String(obj.value);
-      // else skip — it's structural data not useful for contact fields
-    } else {
-      // Primitive value — keep as-is
+    } else if (key === "address" && typeof value === "string") {
+      flat.address = value;
+    } else if (key === "address" && typeof value === "object" && value !== null) {
+      const addr = value as Record<string, unknown>;
+      flat.address = [addr.streetAddress, addr.city, addr.state, addr.postalCode].filter(Boolean).join(", ");
+    } else if (key === "tags" && Array.isArray(value)) {
+      flat.tags = value.join(", ");
+    } else if (key === "attributes" && Array.isArray(value)) {
+      // Each attribute becomes its own mappable field
+      for (const attr of value as { label?: string; value?: unknown; dataType?: string }[]) {
+        if (!attr.label) continue;
+        const fieldKey = `attr:${attr.label}`;
+        flat[fieldKey] = attr.value != null ? String(attr.value) : null;
+      }
+    } else if (typeof value !== "object") {
+      // Simple primitive
       flat[key] = value;
     }
   }
@@ -316,8 +253,11 @@ function flattenPodiumContact(raw: Record<string, unknown>): Record<string, unkn
   return flat;
 }
 
+/**
+ * Flatten a raw Podium contact for IMPORT into UniversalContact.
+ */
 function mapPodiumContact(raw: Record<string, unknown>): UniversalContact {
-  const flat = flattenPodiumContact(raw);
+  const flat = flattenForDiscovery(raw);
 
   const name = String(flat.name || "");
   const parts = name.split(" ");
@@ -325,7 +265,7 @@ function mapPodiumContact(raw: Record<string, unknown>): UniversalContact {
   const lastName = parts.slice(1).join(" ") || "";
 
   const customFields: Record<string, string | number | boolean> = {};
-  const standardKeys = new Set(["name", "email", "phone", "address", "companyName", "tags"]);
+  const standardKeys = new Set(["name", "email", "phone", "address", "tags"]);
 
   for (const [key, value] of Object.entries(flat)) {
     if (!standardKeys.has(key) && value != null && value !== "") {
@@ -334,12 +274,11 @@ function mapPodiumContact(raw: Record<string, unknown>): UniversalContact {
   }
 
   return {
-    sourceId: String(raw.uid || raw.id),
+    sourceId: String(raw.uid || (raw as Record<string, unknown>).id),
     firstName,
     lastName,
     email: flat.email ? String(flat.email) : undefined,
     phone: flat.phone ? String(flat.phone) : undefined,
-    companyName: flat.companyName ? String(flat.companyName) : undefined,
     tags: Array.isArray(raw.tags) ? raw.tags.map(String) : undefined,
     customFields,
     source: "podium",
@@ -357,8 +296,9 @@ function mapChannel(channel: string): "sms" | "email" | "chat" | "phone" | "othe
 }
 
 function humanLabel(key: string): string {
+  // attr:Birthday → Birthday, attr:Opportunity Value → Opportunity Value
+  if (key.startsWith("attr:")) return key.slice(5);
   return key
-    .replace(/^attr_/, "")
     .replace(/([A-Z])/g, " $1")
     .replace(/[_-]/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase())
@@ -378,14 +318,14 @@ function inferType(values: unknown[]): FieldSchema["type"] {
   return "text";
 }
 
-/** Fallback fields if no contacts exist yet */
 function getStaticPodiumFields(): FieldSchema[] {
   return [
     { key: "name", label: "Name", type: "text", isStandard: true, sampleValues: ["John Smith"] },
     { key: "email", label: "Email", type: "email", isStandard: true, sampleValues: ["john@example.com"] },
     { key: "phone", label: "Phone", type: "phone", isStandard: true, sampleValues: ["+1234567890"] },
-    { key: "address", label: "Address", type: "text", isStandard: true, sampleValues: ["123 Main St, City, ST 12345"] },
-    { key: "companyName", label: "Company Name", type: "text", isStandard: true, sampleValues: ["Acme Corp"] },
     { key: "tags", label: "Tags", type: "text", isStandard: true, sampleValues: ["lead, new"] },
+    { key: "attr:Birthday", label: "Birthday", type: "date", isStandard: false, sampleValues: [] },
+    { key: "attr:Contact Source", label: "Contact Source", type: "text", isStandard: false, sampleValues: [] },
+    { key: "attr:Opportunity Value", label: "Opportunity Value", type: "number", isStandard: false, sampleValues: [] },
   ];
 }
