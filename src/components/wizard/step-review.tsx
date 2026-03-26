@@ -160,13 +160,13 @@ export function StepReview({ state, onStart, onBack }: StepReviewProps) {
               className="w-full h-12 text-[15px] gap-2.5"
             >
               {starting ? (
-                <><Loader2 className="h-5 w-5 animate-spin" /> Starting Migration...</>
+                <><Loader2 className="h-5 w-5 animate-spin" /> Starting...</>
               ) : (
-                <><Rocket className="h-5 w-5" /> Start Migration</>
+                <><Rocket className="h-5 w-5" /> Test with 10 Contacts First</>
               )}
             </Button>
             <p className="mt-3 text-center text-xs text-muted-foreground">
-              You&apos;ll be taken to a live progress page.
+              We&apos;ll import 10 contacts first so you can review them in GHL before pushing all.
             </p>
           </div>
         </CardContent>

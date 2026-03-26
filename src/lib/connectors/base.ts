@@ -10,16 +10,19 @@ export const GHL_STANDARD_FIELDS: Record<string, string> = {
   lastName: "Last Name",
   email: "Email",
   phone: "Phone",
-  address1: "Address",
+  address1: "Address Line 1",
   city: "City",
   state: "State",
-  postalCode: "Postal Code",
+  postalCode: "Postal / Zip Code",
   country: "Country",
   website: "Website",
-  timezone: "Timezone",
   companyName: "Company Name",
+  dateOfBirth: "Date of Birth",
+  gender: "Gender",
+  timezone: "Timezone",
   source: "Source",
   tags: "Tags",
+  dnd: "Do Not Disturb",
 };
 
 /**
@@ -59,6 +62,9 @@ export function autoMapFields(sourceFields: FieldSchema[]): FieldMapping[] {
 
   // Common aliases
   const aliases: Record<string, string> = {
+    name: "name",
+    fullname: "name",
+    full_name: "name",
     firstname: "firstName",
     first_name: "firstName",
     lastname: "lastName",
@@ -78,8 +84,18 @@ export function autoMapFields(sourceFields: FieldSchema[]): FieldMapping[] {
     postal_code: "postalCode",
     company: "companyName",
     company_name: "companyName",
+    organization: "companyName",
     url: "website",
     web: "website",
+    birthday: "dateOfBirth",
+    dateofbirth: "dateOfBirth",
+    date_of_birth: "dateOfBirth",
+    dob: "dateOfBirth",
+    gender: "gender",
+    sex: "gender",
+    timezone: "timezone",
+    source: "source",
+    tags: "tags",
   };
 
   for (const field of sourceFields) {

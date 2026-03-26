@@ -15,15 +15,19 @@ const GHL_STANDARD_FIELDS = [
   { key: "lastName", label: "Last Name" },
   { key: "email", label: "Email" },
   { key: "phone", label: "Phone" },
-  { key: "address1", label: "Address" },
+  { key: "address1", label: "Address Line 1" },
   { key: "city", label: "City" },
   { key: "state", label: "State" },
-  { key: "postalCode", label: "Postal Code" },
+  { key: "postalCode", label: "Postal / Zip Code" },
   { key: "country", label: "Country" },
+  { key: "companyName", label: "Company Name" },
   { key: "website", label: "Website" },
-  { key: "companyName", label: "Company" },
-  { key: "tags", label: "Tags" },
+  { key: "dateOfBirth", label: "Date of Birth" },
+  { key: "gender", label: "Gender" },
+  { key: "timezone", label: "Timezone" },
   { key: "source", label: "Source" },
+  { key: "tags", label: "Tags" },
+  { key: "dnd", label: "Do Not Disturb" },
 ];
 
 interface StepFieldMappingProps {

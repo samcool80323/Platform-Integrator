@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
+  ArrowRight,
+  Pause,
   RefreshCw,
   Loader2,
   Users,
@@ -73,6 +75,15 @@ export default function MigrationDetailPage() {
     loadMigration();
   }
 
+  async function handlePushAll() {
+    await fetch(`/api/migrations/${migrationId}/start`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pushAll: true }),
+    });
+    loadMigration();
+  }
+
   if (loading || !migration) {
     return (
       <div className="flex items-center justify-center gap-2.5 py-24 text-muted-foreground">
@@ -87,6 +98,7 @@ export default function MigrationDetailPage() {
   const convProgress = migration.totalConversations > 0
     ? Math.round((migration.processedConversations / migration.totalConversations) * 100) : 0;
   const isRunning = migration.status === "RUNNING";
+  const isPaused = migration.status === "PAUSED";
   const isFailed = migration.status === "FAILED" || migration.status === "COMPLETED_WITH_ERRORS";
 
   return (
@@ -114,13 +126,42 @@ export default function MigrationDetailPage() {
               </p>
             )}
           </div>
-          {isFailed && (
-            <Button variant="outline" size="sm" onClick={handleRetry} className="gap-2">
-              <RefreshCw className="h-4 w-4" /> Retry
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {isPaused && (
+              <Button size="sm" onClick={handlePushAll} className="gap-2">
+                <ArrowRight className="h-4 w-4" /> Push All Contacts
+              </Button>
+            )}
+            {isFailed && (
+              <Button variant="outline" size="sm" onClick={handleRetry} className="gap-2">
+                <RefreshCw className="h-4 w-4" /> Retry
+              </Button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Paused review banner */}
+      {isPaused && (
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-5 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold text-amber-600 dark:text-amber-400">
+            <Pause className="h-4 w-4" />
+            Test import complete — review before continuing
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {migration.processedContacts} test contacts have been imported into your GHL sub-account.
+            Check them in GoHighLevel to make sure the data looks correct — names, phone numbers, tags, custom fields, etc.
+          </p>
+          <div className="flex gap-3">
+            <Button size="sm" onClick={handlePushAll} className="gap-2">
+              <ArrowRight className="h-4 w-4" /> Looks good — push all contacts
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => window.history.back()} className="gap-2">
+              Go back and adjust mapping
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Progress */}
       <div className="grid gap-4 sm:grid-cols-2">
@@ -221,6 +262,7 @@ function StatusPill({ status }: { status: string }) {
     COMPLETED: { label: "Done", icon: CheckCircle2, className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
     COMPLETED_WITH_ERRORS: { label: "Partial", icon: AlertTriangle, className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
     FAILED: { label: "Failed", icon: XCircle, className: "bg-red-500/10 text-red-600 dark:text-red-400" },
+    PAUSED: { label: "Review", icon: Pause, className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
     CANCELLED: { label: "Cancelled", icon: XCircle, className: "bg-muted text-muted-foreground" },
   };
   const c = config[status] || { label: status, icon: Clock, className: "bg-muted text-muted-foreground" };

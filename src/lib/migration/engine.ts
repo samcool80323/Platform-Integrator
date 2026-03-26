@@ -18,7 +18,7 @@ export class MigrationEngine {
     this.migrationId = migrationId;
   }
 
-  async run(): Promise<void> {
+  async run(testLimit?: number): Promise<void> {
     const migration = await prisma.migration.findUniqueOrThrow({
       where: { id: this.migrationId },
       include: { connectorCredential: true },
@@ -75,14 +75,26 @@ export class MigrationEngine {
       );
 
       // Phase 2: Migrate contacts
-      await this.migrateContacts(
+      const hitTestLimit = await this.migrateContacts(
         connector,
         creds,
         ghlClient,
         migration.ghlLocationId,
         fieldMappings,
-        customFieldIdMap
+        customFieldIdMap,
+        testLimit
       );
+
+      // If test limit was hit, pause for review
+      if (hitTestLimit) {
+        await prisma.migration.update({
+          where: { id: this.migrationId },
+          data: { status: "PAUSED" },
+        });
+        await this.log("INFO", `Test import complete — ${testLimit} contacts imported. Review them in GHL, then click "Push All Contacts" to continue.`);
+        await emitComplete(this.migrationId, "paused" as "completed");
+        return;
+      }
 
       // Phase 3: Migrate conversations (if enabled and supported)
       if (options.importConversations && connector.fetchConversations) {
@@ -126,8 +138,9 @@ export class MigrationEngine {
     ghlClient: Awaited<ReturnType<typeof createLocationClient>>,
     locationId: string,
     fieldMappings: FieldMapping[],
-    customFieldIdMap: Record<string, string>
-  ): Promise<void> {
+    customFieldIdMap: Record<string, string>,
+    testLimit?: number
+  ): Promise<boolean> {
     let processed = 0;
     let failed = 0;
     let batchNum = 0;
@@ -186,9 +199,23 @@ export class MigrationEngine {
             migrationId: this.migrationId,
             phase: "contacts",
             processed,
-            total: processed + failed, // we don't know total upfront
+            total: processed + failed,
             failed,
           });
+        }
+
+        // Test limit: stop after N contacts
+        if (testLimit && (processed + failed) >= testLimit) {
+          await prisma.migration.update({
+            where: { id: this.migrationId },
+            data: {
+              lastBatchProcessed: batchNum,
+              processedContacts: processed,
+              failedContacts: failed,
+              totalContacts: processed + failed,
+            },
+          });
+          return true; // hit the test limit
         }
       }
 
@@ -205,6 +232,7 @@ export class MigrationEngine {
     }
 
     await this.log("INFO", `Contacts migration complete: ${processed} processed, ${failed} failed`);
+    return false; // no test limit hit
   }
 
   private async migrateConversations(

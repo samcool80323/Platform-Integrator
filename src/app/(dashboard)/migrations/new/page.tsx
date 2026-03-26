@@ -96,7 +96,12 @@ export default function NewMigrationPage() {
         return;
       }
       const { migration } = await res.json();
-      await fetch(`/api/migrations/${migration.id}/start`, { method: "POST" });
+      // Start with test limit of 10 contacts — user reviews before pushing all
+      await fetch(`/api/migrations/${migration.id}/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ testLimit: 10 }),
+      });
       router.push(`/migrations/${migration.id}`);
     } catch (error) {
       setStartError(error instanceof Error ? error.message : "Failed to start migration");

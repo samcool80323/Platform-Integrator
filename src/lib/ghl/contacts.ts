@@ -2,6 +2,7 @@ import { GHLClient } from "./client";
 
 export interface GHLContact {
   id: string;
+  name?: string;
   firstName?: string;
   lastName?: string;
   email?: string;
@@ -15,6 +16,11 @@ export interface GHLContact {
   companyName?: string;
   tags?: string[];
   source?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  timezone?: string;
+  dnd?: boolean;
+  assignedTo?: string;
   customFields?: { id: string; value: unknown }[];
   [key: string]: unknown;
 }
