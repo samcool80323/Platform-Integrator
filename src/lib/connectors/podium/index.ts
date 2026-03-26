@@ -185,10 +185,66 @@ export class PodiumConnector implements PlatformConnector {
 
   /**
    * Fetch ALL conversations for a specific contact.
-   * Iterates through all Podium conversations, matches by contactUid,
-   * fetches all messages for each, and returns them sorted oldest-first.
+   * Uses Podium's contactUid filter to avoid fetching unrelated conversations.
+   * Falls back to scanning all conversations if the filter returns nothing
+   * (some Podium orgs use contactId instead of contactUid).
    */
   async fetchConversationsForContact(
+    creds: Record<string, string>,
+    contactSourceId: string
+  ): Promise<UniversalConversation[]> {
+    // Try filtered fetch first (fast path)
+    const filtered = await this.fetchConversationsFiltered(creds, contactSourceId);
+    if (filtered.length > 0) return filtered;
+
+    // Fallback: scan all conversations matching this contact
+    return this.fetchConversationsScan(creds, contactSourceId);
+  }
+
+  /**
+   * Fast path: use Podium's contactUid query parameter.
+   */
+  private async fetchConversationsFiltered(
+    creds: Record<string, string>,
+    contactSourceId: string
+  ): Promise<UniversalConversation[]> {
+    const result: UniversalConversation[] = [];
+    let cursor: string | undefined;
+
+    do {
+      const url = new URL(`${PODIUM_API_BASE}/conversations`);
+      url.searchParams.set("limit", "50");
+      url.searchParams.set("contactUid", contactSourceId);
+      if (cursor) url.searchParams.set("cursor", cursor);
+
+      const res = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${creds.accessToken}`, Accept: "application/json" },
+      });
+      if (!res.ok) break;
+      const data = await res.json();
+      const conversations = data.data || [];
+      if (conversations.length === 0) break;
+
+      for (const conv of conversations) {
+        const messages = await fetchAllMessages(creds.accessToken, String(conv.uid));
+        result.push({
+          sourceId: String(conv.uid || conv.id),
+          contactSourceId,
+          channel: mapChannel(String(conv.channel || conv.channelType || "sms")),
+          messages,
+        });
+      }
+
+      cursor = data.metadata?.cursor || data.nextCursor;
+    } while (cursor);
+
+    return result;
+  }
+
+  /**
+   * Fallback: scan all conversations and match by contactUid/contactId.
+   */
+  private async fetchConversationsScan(
     creds: Record<string, string>,
     contactSourceId: string
   ): Promise<UniversalConversation[]> {
