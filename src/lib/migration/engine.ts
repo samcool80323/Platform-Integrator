@@ -2,7 +2,7 @@ import { prisma } from "../db";
 import { createLocationClient } from "../ghl/auth";
 import { upsertContact } from "../ghl/contacts";
 import { ensureCustomFields } from "../ghl/custom-fields";
-import { addInboundMessage, addOutboundMessage, addContactNote } from "../ghl/conversations";
+import { addContactNote } from "../ghl/conversations";
 import { getConnector } from "../connectors/registry";
 import { decryptJson } from "../encryption";
 import { applyFieldMappings } from "./field-mapper";
@@ -61,6 +61,7 @@ export class MigrationEngine {
         .map((m) => ({
           key: m.sourceField,
           name: m.sourceField
+            .replace(/^attr:/, "")           // strip attr: prefix
             .replace(/[_-]/g, " ")
             .replace(/\b\w/g, (c) => c.toUpperCase()),
           dataType: "TEXT",
@@ -85,20 +86,21 @@ export class MigrationEngine {
         testLimit
       );
 
+      // Phase 3: Migrate conversations as internal notes
+      // Always import for the contacts we've pushed — including test mode
+      if (connector.fetchConversations) {
+        await this.migrateConversations(connector, creds, ghlClient);
+      }
+
       // If test limit was hit, pause for review
       if (hitTestLimit) {
         await prisma.migration.update({
           where: { id: this.migrationId },
           data: { status: "PAUSED" },
         });
-        await this.log("INFO", `Test import complete — ${testLimit} contacts imported. Review them in GHL, then click "Push All Contacts" to continue.`);
+        await this.log("INFO", `Test import complete — ${testLimit} contacts imported with conversations. Review them in GHL, then click "Push All Contacts" to continue.`);
         await emitComplete(this.migrationId, "paused" as "completed");
         return;
-      }
-
-      // Phase 3: Migrate conversations (if enabled and supported)
-      if (options.importConversations && connector.fetchConversations) {
-        await this.migrateConversations(connector, creds, ghlClient);
       }
 
       // Finalize
@@ -144,6 +146,7 @@ export class MigrationEngine {
     let processed = 0;
     let failed = 0;
     let batchNum = 0;
+    let hitLimit = false;
 
     const migration = await prisma.migration.findUniqueOrThrow({
       where: { id: this.migrationId },
@@ -156,6 +159,12 @@ export class MigrationEngine {
       if (batchNum <= migration.lastBatchProcessed) continue;
 
       for (const contact of batch) {
+        // Check test limit BEFORE processing — hard stop
+        if (testLimit && (processed + failed) >= testLimit) {
+          hitLimit = true;
+          break;
+        }
+
         try {
           await acquireRateLimit(locationId);
 
@@ -193,8 +202,8 @@ export class MigrationEngine {
           await this.log("ERROR", `Failed to migrate contact ${contact.sourceId}: ${message}`);
         }
 
-        // Emit progress every 10 records
-        if ((processed + failed) % 10 === 0) {
+        // Emit progress every 5 records
+        if ((processed + failed) % 5 === 0) {
           await emitProgress({
             migrationId: this.migrationId,
             phase: "contacts",
@@ -203,23 +212,9 @@ export class MigrationEngine {
             failed,
           });
         }
-
-        // Test limit: stop after N contacts
-        if (testLimit && (processed + failed) >= testLimit) {
-          await prisma.migration.update({
-            where: { id: this.migrationId },
-            data: {
-              lastBatchProcessed: batchNum,
-              processedContacts: processed,
-              failedContacts: failed,
-              totalContacts: processed + failed,
-            },
-          });
-          return true; // hit the test limit
-        }
       }
 
-      // Update batch progress in DB (for resume)
+      // Update batch progress in DB
       await prisma.migration.update({
         where: { id: this.migrationId },
         data: {
@@ -229,21 +224,30 @@ export class MigrationEngine {
           totalContacts: processed + failed,
         },
       });
+
+      // Break out of outer loop if test limit was hit
+      if (hitLimit) break;
     }
 
-    await this.log("INFO", `Contacts migration complete: ${processed} processed, ${failed} failed`);
-    return false; // no test limit hit
+    await this.log("INFO", `Contacts migration: ${processed} processed, ${failed} failed`);
+    return hitLimit;
   }
 
+  /**
+   * Import conversations as INTERNAL NOTES on each contact.
+   * Only imports for contacts that were actually migrated (in sourceIdToGhlId).
+   */
   private async migrateConversations(
     connector: ReturnType<typeof getConnector> & {},
     creds: Record<string, string>,
     ghlClient: Awaited<ReturnType<typeof createLocationClient>>
   ): Promise<void> {
     if (!connector.fetchConversations) return;
+    if (this.sourceIdToGhlId.size === 0) return;
 
     let processed = 0;
     let failed = 0;
+    let skipped = 0;
 
     await emitProgress({
       migrationId: this.migrationId,
@@ -251,31 +255,36 @@ export class MigrationEngine {
       processed: 0,
       total: 0,
       failed: 0,
-      message: "Importing conversations...",
+      message: "Importing conversations as internal notes...",
     });
 
     for await (const batch of connector.fetchConversations(creds)) {
       for (const conv of batch) {
         const ghlContactId = this.sourceIdToGhlId.get(conv.contactSourceId);
+
+        // Only import conversations for contacts we've actually migrated
         if (!ghlContactId) {
-          failed++;
-          await this.log("WARN", `Skipping conversation ${conv.sourceId}: no matching GHL contact for source ID ${conv.contactSourceId}`);
+          skipped++;
           continue;
         }
 
-        // Build a single note body from all messages in the conversation
+        if (conv.messages.length === 0) continue;
+
+        // Build conversation transcript as a single internal note
         const noteLines: string[] = [];
-        noteLines.push(`--- Imported ${conv.channel.toUpperCase()} conversation (${conv.messages.length} messages) ---`);
+        noteLines.push(`--- ${conv.channel.toUpperCase()} Conversation (${conv.messages.length} messages) ---`);
+        noteLines.push("");
 
         for (const msg of conv.messages) {
           const time = msg.timestamp.toISOString().replace("T", " ").slice(0, 19);
-          const dir = msg.direction === "inbound" ? "IN" : "OUT";
-          noteLines.push(`[${time}] [${dir}] ${msg.body}`);
+          const dir = msg.direction === "inbound" ? "CUSTOMER" : "AGENT";
+          noteLines.push(`[${time}] ${dir}: ${msg.body}`);
         }
 
         try {
           await acquireRateLimit("conversations");
 
+          // POST to /contacts/{contactId}/notes — creates an internal note
           await addContactNote(ghlClient, {
             contactId: ghlContactId,
             body: noteLines.join("\n"),
@@ -299,7 +308,7 @@ export class MigrationEngine {
       },
     });
 
-    await this.log("INFO", `Conversations migration complete: ${processed} messages processed, ${failed} failed`);
+    await this.log("INFO", `Conversations: ${processed} imported as internal notes, ${failed} failed, ${skipped} skipped (contact not in this batch)`);
   }
 
   private async log(level: "INFO" | "WARN" | "ERROR" | "DEBUG", message: string) {

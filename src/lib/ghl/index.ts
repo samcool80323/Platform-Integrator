@@ -10,7 +10,6 @@ export {
 export {
   getCustomFields,
   createCustomField,
-  createCustomFieldFolder,
   ensureCustomFields,
 } from "./custom-fields";
 export { addInboundMessage, addOutboundMessage } from "./conversations";
