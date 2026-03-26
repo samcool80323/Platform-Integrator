@@ -96,13 +96,25 @@ export class GHLClient {
 
       // Client error — don't retry
       const errorBody = await res.text().catch(() => "");
-      throw {
-        status: res.status,
-        message: `GHL API error: ${res.status}`,
-        data: errorBody ? JSON.parse(errorBody) : null,
-      } as GHLError;
+      let detail = "";
+      try {
+        const parsed = errorBody ? JSON.parse(errorBody) : null;
+        detail = parsed?.message || parsed?.error || (parsed ? JSON.stringify(parsed) : "");
+      } catch {
+        detail = errorBody;
+      }
+      const err = new Error(`GHL API error ${res.status}${detail ? `: ${detail}` : ""}`);
+      (err as unknown as GHLError).status = res.status;
+      (err as unknown as GHLError).data = errorBody;
+      throw err;
     }
 
-    throw lastError || new Error("Max retries exceeded");
+    if (lastError) {
+      const err = new Error(lastError.message);
+      (err as unknown as GHLError).status = lastError.status;
+      (err as unknown as GHLError).data = lastError.data;
+      throw err;
+    }
+    throw new Error("Max retries exceeded");
   }
 }

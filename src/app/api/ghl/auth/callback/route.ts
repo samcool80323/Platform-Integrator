@@ -45,6 +45,13 @@ export async function GET(req: NextRequest) {
 
     const tokenData = await tokenRes.json();
 
+    // companyId is the agency ID — locationId is a sub-account, not interchangeable.
+    // If GHL only returns locationId (location-level install), store it separately
+    // but do NOT use it as companyId.
+    if (!tokenData.companyId) {
+      console.warn("GHL OAuth returned no companyId — this may be a location-level install. Token data keys:", Object.keys(tokenData).join(", "));
+    }
+
     // Update the credential with tokens
     await prisma.ghlAgencyCredential.update({
       where: { userId: session.user.id },
@@ -52,7 +59,7 @@ export async function GET(req: NextRequest) {
         accessToken: encrypt(tokenData.access_token),
         refreshToken: encrypt(tokenData.refresh_token),
         tokenExpiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
-        companyId: tokenData.companyId || tokenData.locationId,
+        companyId: tokenData.companyId || "",
         companyName: tokenData.companyName || tokenData.locationName || "Connected",
       },
     });
