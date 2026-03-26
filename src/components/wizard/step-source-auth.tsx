@@ -368,11 +368,22 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
                   )}
 
                   {oauthStatus !== "done" && oauthAppConfigured !== false && (
-                    <Button asChild disabled={oauthStatus === "fetching"} className="gap-2">
-                      <a href={`/api/connectors/${connectorId}/oauth/start`}>
-                        <ExternalLink className="h-4 w-4" />
-                        Connect with {connector.name}
-                      </a>
+                    <Button
+                      disabled={oauthStatus === "fetching"}
+                      className="gap-2"
+                      onClick={() => {
+                        // Save wizard state so it survives the OAuth redirect
+                        try {
+                          sessionStorage.setItem(
+                            "migration_wizard_state",
+                            JSON.stringify({ step: 1, state: { connectorId, connectorName: connector.name } })
+                          );
+                        } catch { /* ignore */ }
+                        window.location.href = `/api/connectors/${connectorId}/oauth/start`;
+                      }}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Connect with {connector.name}
                     </Button>
                   )}
 

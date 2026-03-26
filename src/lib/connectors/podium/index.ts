@@ -38,8 +38,7 @@ Podium uses a secure login (OAuth 2.0). You do NOT need to copy any keys — jus
 1. Click **"Create New Application"** (or **"+ New App"**)
 2. Fill in the form:
    - **App Name:** Platform Integrator
-   - **Redirect URI:** paste exactly this:
-     \`https://platform-integrator-production.up.railway.app/api/connectors/podium/oauth/callback\`
+   - **Redirect URI:** copy the redirect URI shown in your Platform Integrator Settings page (under Podium setup)
 3. Click **"Save"** or **"Create"**
 
 ---
@@ -69,9 +68,11 @@ export class PodiumConnector implements PlatformConnector {
     type: "oauth2",
     authorizationUrl: "https://api.podium.com/oauth/authorize",
     tokenUrl: "https://api.podium.com/oauth/token",
-    scopes: ["read"],
+    scopes: ["read_contacts", "read_messages", "read_locations"],
     scopeDescriptions: {
-      read: "Read-only access to contacts, conversations, reviews, and location data",
+      read_contacts: "Read your contacts list",
+      read_messages: "Read conversations and messages",
+      read_locations: "Read location info (used to verify connection)",
     },
   };
 
@@ -88,15 +89,16 @@ export class PodiumConnector implements PlatformConnector {
     creds: Record<string, string>
   ): Promise<{ valid: boolean; error?: string }> {
     try {
-      const res = await fetch(`${PODIUM_API_BASE}/organizations`, {
+      const res = await fetch(`${PODIUM_API_BASE}/locations`, {
         headers: {
           Authorization: `Bearer ${creds.accessToken}`,
           Accept: "application/json",
         },
       });
       if (res.ok) return { valid: true };
-      return { valid: false, error: `Podium API returned ${res.status}` };
-    } catch (e) {
+      const text = await res.text().catch(() => "");
+      return { valid: false, error: `Podium API returned ${res.status}: ${text.slice(0, 200)}` };
+    } catch {
       return { valid: false, error: "Could not connect to Podium API" };
     }
   }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { StepSelectSource } from "@/components/wizard/step-select-source";
 import { StepSourceAuth } from "@/components/wizard/step-source-auth";
 import { StepSelectGHL } from "@/components/wizard/step-select-ghl";
@@ -31,11 +31,35 @@ const STEPS = [
   { label: "Review", description: "Confirm and start importing" },
 ];
 
+const WIZARD_STORAGE_KEY = "migration_wizard_state";
+
 export default function NewMigrationPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(0);
   const [state, setState] = useState<Partial<WizardState>>({});
   const [startError, setStartError] = useState<string | null>(null);
+
+  // Restore wizard state after OAuth redirect (page was navigated away and came back)
+  useEffect(() => {
+    const oauthDone = searchParams.get("oauth_done");
+    const oauthConnector = searchParams.get("oauth_connector");
+    const oauthError = searchParams.get("oauth_error");
+
+    if ((oauthDone || oauthError) && oauthConnector) {
+      try {
+        const saved = sessionStorage.getItem(WIZARD_STORAGE_KEY);
+        if (saved) {
+          const { step: savedStep, state: savedState } = JSON.parse(saved);
+          setState(savedState);
+          setStep(savedStep);
+          sessionStorage.removeItem(WIZARD_STORAGE_KEY);
+        }
+      } catch {
+        // ignore parse errors
+      }
+    }
+  }, [searchParams]);
 
   function updateState(updates: Partial<WizardState>) {
     setState((prev) => ({ ...prev, ...updates }));
