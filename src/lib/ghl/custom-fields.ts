@@ -27,11 +27,11 @@ export async function getCustomFields(
 export async function createCustomField(
   client: GHLClient,
   locationId: string,
-  field: { name: string; dataType: string; parentId?: string }
+  field: { name: string; dataType: string; model?: string; parentId?: string }
 ): Promise<GHLCustomField> {
   const result = await client.post<{ customField: GHLCustomField }>(
     `/locations/${locationId}/customFields`,
-    field
+    { model: "contact", ...field }
   );
   return result.customField;
 }
@@ -57,12 +57,20 @@ export async function createCustomFieldFolder(
   client: GHLClient,
   locationId: string,
   name: string
-): Promise<GHLCustomFieldFolder> {
-  const result = await client.post<{ folder: GHLCustomFieldFolder }>(
-    `/locations/${locationId}/customFields`,
-    { name, model: "contact", isFolder: true }
-  );
-  return result.folder;
+): Promise<GHLCustomFieldFolder | null> {
+  // Try to create a folder group via the customFields endpoint.
+  // GHL API support for folder creation varies — if it fails, return null
+  // and fields will be created at the top level instead.
+  try {
+    const result = await client.post<{ customField?: GHLCustomFieldFolder }>(
+      `/locations/${locationId}/customFields`,
+      { name, dataType: "FOLDER", model: "contact" }
+    );
+    return result.customField || null;
+  } catch {
+    // Folder creation not supported or failed — fields will go to top level
+    return null;
+  }
 }
 
 /**
@@ -99,36 +107,38 @@ export async function ensureCustomFields(
   // Fetch existing GHL custom fields
   const existingFields = await getCustomFields(client, locationId);
 
-  // Find or create folder
+  // Try to find or create folder — if folder creation fails, fields go top-level
   const folderName = `${connectorName} Fields`;
   let folder = existingFields.find(
     (f) => f.name === folderName && !f.dataType
   );
 
-  let folderId: string;
+  let folderId: string | undefined;
   if (folder) {
     folderId = folder.id;
   } else {
     const newFolder = await createCustomFieldFolder(client, locationId, folderName);
-    folderId = newFolder.id;
+    folderId = newFolder?.id;
   }
 
   // Create missing fields
   for (const field of uncached) {
-    // Check if field already exists by name
+    // Check if field already exists by name (in folder or top-level)
     const existing = existingFields.find(
-      (f) => f.name === field.name && f.parentId === folderId
+      (f) => f.name === field.name && (folderId ? f.parentId === folderId : true)
     );
 
     let fieldId: string;
     if (existing) {
       fieldId = existing.id;
     } else {
-      const created = await createCustomField(client, locationId, {
+      const payload: { name: string; dataType: string; model: string; parentId?: string } = {
         name: field.name,
         dataType: field.dataType || "TEXT",
-        parentId: folderId,
-      });
+        model: "contact",
+      };
+      if (folderId) payload.parentId = folderId;
+      const created = await createCustomField(client, locationId, payload);
       fieldId = created.id;
     }
 
@@ -141,13 +151,13 @@ export async function ensureCustomFields(
           sourceFieldKey: field.key,
         },
       },
-      update: { ghlFieldId: fieldId, ghlFolderId: folderId },
+      update: { ghlFieldId: fieldId, ghlFolderId: folderId || "" },
       create: {
         ghlLocationId: locationId,
         connectorId,
         sourceFieldKey: field.key,
         ghlFieldId: fieldId,
-        ghlFolderId: folderId,
+        ghlFolderId: folderId || "",
       },
     });
 
