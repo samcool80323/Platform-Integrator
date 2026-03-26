@@ -59,6 +59,12 @@ export interface PlatformConnector {
     creds: Record<string, string>
   ): AsyncGenerator<UniversalConversation[], void, unknown>;
 
+  /** Fetch all conversations for a specific contact by their source ID */
+  fetchConversationsForContact?(
+    creds: Record<string, string>,
+    contactSourceId: string
+  ): Promise<UniversalConversation[]>;
+
   fetchOpportunities?(
     creds: Record<string, string>
   ): AsyncGenerator<UniversalOpportunity[], void, unknown>;

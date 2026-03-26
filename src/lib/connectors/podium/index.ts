@@ -170,23 +170,11 @@ export class PodiumConnector implements PlatformConnector {
 
       const mapped: UniversalConversation[] = [];
       for (const conv of conversations) {
-        const msgRes = await fetch(
-          `${PODIUM_API_BASE}/conversations/${conv.uid}/messages?limit=100`,
-          { headers: { Authorization: `Bearer ${creds.accessToken}`, Accept: "application/json" } }
-        );
-        const msgData = msgRes.ok ? await msgRes.json() : { data: [] };
-        const messages: UniversalMessage[] = (msgData.data || []).map(
-          (m: Record<string, unknown>) => ({
-            sourceId: String(m.uid || m.id),
-            direction: m.direction === "outbound" ? "outbound" as const : "inbound" as const,
-            body: String(m.body || m.text || ""),
-            timestamp: new Date(String(m.createdAt || m.sentAt)),
-          })
-        );
+        const messages = await fetchAllMessages(creds.accessToken, String(conv.uid));
         mapped.push({
           sourceId: String(conv.uid || conv.id),
           contactSourceId: String(conv.contactUid || conv.contactId || ""),
-          channel: mapChannel(String(conv.channel || "sms")),
+          channel: mapChannel(String(conv.channel || conv.channelType || "sms")),
           messages,
         });
       }
@@ -194,9 +182,197 @@ export class PodiumConnector implements PlatformConnector {
       cursor = data.metadata?.cursor || data.nextCursor;
     } while (cursor);
   }
+
+  /**
+   * Fetch ALL conversations for a specific contact.
+   * Iterates through all Podium conversations, matches by contactUid,
+   * fetches all messages for each, and returns them sorted oldest-first.
+   */
+  async fetchConversationsForContact(
+    creds: Record<string, string>,
+    contactSourceId: string
+  ): Promise<UniversalConversation[]> {
+    const result: UniversalConversation[] = [];
+    let cursor: string | undefined;
+
+    do {
+      const url = new URL(`${PODIUM_API_BASE}/conversations`);
+      url.searchParams.set("limit", "50");
+      if (cursor) url.searchParams.set("cursor", cursor);
+
+      const res = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${creds.accessToken}`, Accept: "application/json" },
+      });
+      if (!res.ok) break;
+      const data = await res.json();
+      const conversations = data.data || [];
+      if (conversations.length === 0) break;
+
+      for (const conv of conversations) {
+        const convContactId = String(conv.contactUid || conv.contactId || "");
+        if (convContactId !== contactSourceId) continue;
+
+        const messages = await fetchAllMessages(creds.accessToken, String(conv.uid));
+        result.push({
+          sourceId: String(conv.uid || conv.id),
+          contactSourceId: convContactId,
+          channel: mapChannel(String(conv.channel || conv.channelType || "sms")),
+          messages,
+        });
+      }
+
+      cursor = data.metadata?.cursor || data.nextCursor;
+    } while (cursor);
+
+    return result;
+  }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
+
+/**
+ * Fetch ALL messages for a conversation, paginating through all pages.
+ * Returns messages sorted oldest-first.
+ */
+async function fetchAllMessages(
+  accessToken: string,
+  conversationUid: string
+): Promise<UniversalMessage[]> {
+  const allMessages: UniversalMessage[] = [];
+  let cursor: string | undefined;
+
+  do {
+    const url = new URL(`${PODIUM_API_BASE}/conversations/${conversationUid}/messages`);
+    url.searchParams.set("limit", "100");
+    if (cursor) url.searchParams.set("cursor", cursor);
+
+    const res = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" },
+    });
+    if (!res.ok) break;
+
+    const data = await res.json();
+    const messages = data.data || [];
+    if (messages.length === 0) break;
+
+    for (const m of messages as Record<string, unknown>[]) {
+      const body = resolveMessageBody(m);
+      if (!body) continue;
+
+      allMessages.push({
+        sourceId: String(m.uid || m.id),
+        direction: resolveDirection(m),
+        body,
+        timestamp: new Date(String(m.createdAt || m.sentAt || 0)),
+      });
+    }
+
+    cursor = (data.metadata as Record<string, unknown>)?.cursor as string | undefined
+      || data.nextCursor as string | undefined;
+  } while (cursor);
+
+  // Sort oldest first
+  allMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  return allMessages;
+}
+
+/**
+ * Determine message direction from Podium's nested structure.
+ * Checks items[].sourceType, sourceType, deliveryStatus, senderUid.
+ */
+function resolveDirection(msg: Record<string, unknown>): "inbound" | "outbound" {
+  const items = (msg.items || []) as Record<string, unknown>[];
+  const iSrc = String(items[0]?.sourceType || "").toLowerCase();
+  const tSrc = String(msg.sourceType || "").toLowerCase();
+  const dlv = String(items[0]?.deliveryStatus || "").toLowerCase();
+
+  if (iSrc === "inbound" || tSrc === "inbound" || dlv === "received") return "inbound";
+  if (iSrc === "outbound" || tSrc === "outbound" || dlv === "sent") return "outbound";
+  if (msg.senderUid === null || msg.senderUid === undefined) return "inbound";
+  return "outbound";
+}
+
+/**
+ * Extract readable message body from Podium's complex message structure.
+ * Handles: text, review requests, payment requests, voicemails, attachments, emails.
+ */
+function resolveMessageBody(msg: Record<string, unknown>): string {
+  const items = (msg.items || []) as Record<string, unknown>[];
+  const itemTypes = items.map((i) => String(i.type || "").toLowerCase());
+  const msgType = String(msg.type || "").toLowerCase();
+
+  // Review invitations
+  if (
+    itemTypes.includes("messenger_review_invitation") ||
+    itemTypes.includes("review_invitation") ||
+    msgType === "review_invitation"
+  ) {
+    return "[Review request sent]";
+  }
+
+  // Payment requests
+  const payItem = items.find(
+    (i) =>
+      String(i.sendBody || "").toLowerCase().includes("pay.podium") ||
+      String(i.sendBody || "").toLowerCase().includes("/pay/")
+  );
+  if (payItem) {
+    const amt = String(payItem.sendBody || "").trim();
+    return amt ? `[Payment request sent] ${amt}` : "[Payment request sent]";
+  }
+
+  // Voice / call messages
+  const isVoice =
+    itemTypes.some((t) => ["call", "voicemail", "voice_message", "phone_call"].includes(t)) ||
+    ["call", "voicemail", "voice_message", "phone_call"].includes(msgType);
+  if (isVoice) {
+    const d = msg.duration || items[0]?.duration;
+    return d ? `[Voicemail / Call — ${d}s]` : "[Voicemail / Call]";
+  }
+
+  // Collect attachments
+  const attachLines: string[] = [];
+  const attachItems = items.filter(
+    (i) =>
+      String(i.type || "").toLowerCase() === "attachment" ||
+      String(i.attachmentUrl || "") !== "" ||
+      String(i.attachmentContentType || "") !== ""
+  );
+  const topUrl = String(msg.attachmentUrl || "");
+
+  for (const ai of attachItems) {
+    const url = String(ai.attachmentUrl || "");
+    const ct = String(ai.attachmentContentType || "").toLowerCase();
+    if (ct.startsWith("image/")) attachLines.push(url ? `[Image — ${url}]` : "[Image]");
+    else if (ct.startsWith("video/")) attachLines.push(url ? `[Video — ${url}]` : "[Video]");
+    else if (ct.includes("pdf")) attachLines.push(url ? `[PDF — ${url}]` : "[PDF]");
+    else attachLines.push(url ? `[File — ${url}]` : "[File]");
+  }
+  if (attachItems.length === 0 && topUrl) {
+    attachLines.push(`[Attachment — ${topUrl}]`);
+  }
+
+  // Text content
+  const parts: string[] = [];
+
+  // Email subject
+  const subj = String(msg.subject || items[0]?.subject || "");
+  if (subj && (msgType === "email" || String(msg.channel || "").toLowerCase().includes("email"))) {
+    parts.push(`[Subject: ${subj}]`);
+  }
+
+  const topBody = String(msg.body || "").trim();
+  if (topBody) parts.push(topBody);
+
+  for (const item of items) {
+    const sub = String(item.body || "").trim();
+    const send = String(item.sendBody || "").trim();
+    if (!topBody && sub && !parts.includes(sub)) parts.push(sub);
+    if (send && send !== "null" && !parts.includes(send)) parts.push(send);
+  }
+
+  return [...parts, ...attachLines].join("\n").trim();
+}
 
 /**
  * Flatten a raw Podium contact for field DISCOVERY.

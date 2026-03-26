@@ -12,6 +12,6 @@ export {
   createCustomField,
   ensureCustomFields,
 } from "./custom-fields";
-export { addContactNote } from "./conversations";
+export { postInternalComment, addContactNote } from "./conversations";
 export { getPipelines, createOpportunity } from "./opportunities";
 export { getCalendars, createAppointment } from "./appointments";
