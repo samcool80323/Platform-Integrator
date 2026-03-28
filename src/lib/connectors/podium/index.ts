@@ -33,6 +33,9 @@ export class PodiumConnector implements PlatformConnector {
   logo = "/logos/podium.svg";
   description = "Import contacts, conversations, and reviews from Podium";
 
+  // Populated during fetchContacts — maps contactUid → conversation UIDs
+  private contactConvos = new Map<string, string[]>();
+
   authConfig: AuthConfig = {
     type: "oauth2",
     authorizationUrl: "https://api.podium.com/oauth/authorize",
@@ -146,7 +149,15 @@ export class PodiumConnector implements PlatformConnector {
       const contacts = data.data || data.contacts || [];
       if (contacts.length === 0) break;
 
-      yield contacts.map((c: Record<string, unknown>) => mapPodiumContact(c));
+      yield contacts.map((c: Record<string, unknown>) => {
+        // Save conversation UIDs from the contact list response
+        const contactUid = String(c.uid || c.id);
+        const convos = (c.conversations || []) as { uid: string }[];
+        if (convos.length > 0) {
+          this.contactConvos.set(contactUid, convos.map(cv => cv.uid));
+        }
+        return mapPodiumContact(c);
+      });
       cursor = data.metadata?.cursor || data.nextCursor;
     } while (cursor);
   }
@@ -156,44 +167,32 @@ export class PodiumConnector implements PlatformConnector {
    * 1. GET /contacts/{uid} → contact has conversations[].uid
    * 2. For each conversation uid, GET /conversations/{uid} to fetch messages
    */
+  /**
+   * Get conversations for a contact using UIDs saved during fetchContacts.
+   * Each contact from GET /contacts has conversations[].uid — we stored them
+   * in this.contactConvos and now just fetch messages for each.
+   */
   async fetchConversationsForContact(
     creds: Record<string, string>,
     contactSourceId: string
   ): Promise<UniversalConversation[]> {
-    const headers = { Authorization: `Bearer ${creds.accessToken}`, Accept: "application/json" };
+    const convUids = this.contactConvos.get(contactSourceId);
+    if (!convUids || convUids.length === 0) return [];
 
-    // Step 1: GET /contacts/{uid} → read conversations[].uid
-    const contactUrl = `${PODIUM_API_BASE}/contacts/${contactSourceId}`;
-    console.log(`[Podium] Fetching contact convos: GET ${contactUrl}`);
-    const contactRes = await fetch(contactUrl, { headers });
-    if (!contactRes.ok) {
-      const errBody = await contactRes.text().catch(() => "");
-      console.error(`[Podium] Contact fetch failed: ${contactRes.status} ${errBody.slice(0, 200)}`);
-      if (contactRes.status === 404) return [];
-      throw new Error(`Podium contact fetch error: ${contactRes.status}`);
-    }
+    console.log(`[Podium] Contact ${contactSourceId}: ${convUids.length} conversations → ${convUids.join(", ")}`);
 
-    const contactData = await contactRes.json();
-    const contact = contactData.data || contactData;
-    const convRefs = (contact.conversations || []) as { uid: string }[];
-
-    console.log(`[Podium] Contact ${contactSourceId}: ${convRefs.length} conversations found (uids: ${convRefs.map(r => r.uid).join(", ")})`);
-
-    if (convRefs.length === 0) return [];
-
-    // Step 2: For each conversation uid, GET /conversations/{uid}/messages
+    // Fetch messages for each conversation in parallel (batches of 5)
     const results: UniversalConversation[] = [];
 
-    for (let i = 0; i < convRefs.length; i += 5) {
-      const chunk = convRefs.slice(i, i + 5);
+    for (let i = 0; i < convUids.length; i += 5) {
+      const chunk = convUids.slice(i, i + 5);
       const batch = await Promise.all(
-        chunk.map(async (ref) => {
-          console.log(`[Podium] Fetching messages: GET /conversations/${ref.uid}/messages`);
-          const messages = await fetchAllMessages(creds.accessToken, ref.uid);
-          console.log(`[Podium] Conversation ${ref.uid}: ${messages.length} messages`);
+        chunk.map(async (convUid) => {
+          const messages = await fetchAllMessages(creds.accessToken, convUid);
+          console.log(`[Podium] Conversation ${convUid}: ${messages.length} messages`);
           if (messages.length === 0) return null;
           return {
-            sourceId: ref.uid,
+            sourceId: convUid,
             contactSourceId,
             channel: "sms" as const as UniversalConversation["channel"],
             messages,
