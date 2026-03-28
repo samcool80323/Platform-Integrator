@@ -61,7 +61,13 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(credentialId ? { credentialId } : { credentials }),
     })
-      .then(async (r) => { if (!r.ok) throw new Error("Failed to discover fields"); return r.json(); })
+      .then(async (r) => {
+        if (!r.ok) {
+          const data = await r.json().catch(() => ({}));
+          throw new Error(data.error || `Discovery failed (${r.status})`);
+        }
+        return r.json();
+      })
       .then((data) => { setFields(data.fields || []); setMappings(data.mappings || []); setLoading(false); })
       .catch((err) => { setError(err.message); setLoading(false); });
   }, [connectorId, credentials, credentialId]);

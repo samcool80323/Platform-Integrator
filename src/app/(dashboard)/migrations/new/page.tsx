@@ -67,6 +67,37 @@ export default function NewMigrationPage() {
     setState((prev) => ({ ...prev, ...updates }));
   }
 
+  /**
+   * Go back to a previous step AND clear state for all forward steps,
+   * so stale mappings / selections don't carry over.
+   */
+  function goBack(toStep: number) {
+    setState((prev) => {
+      const cleared = { ...prev };
+      // Clear step 4 data (review uses existing state, nothing extra)
+      if (toStep < 3) {
+        // Going back past field mapping — clear mappings, fields, tags
+        delete cleared.fields;
+        delete cleared.fieldMappings;
+        delete cleared.extraTags;
+        delete cleared.contactSource;
+      }
+      if (toStep < 2) {
+        // Going back past GHL selection — clear location
+        delete cleared.ghlLocationId;
+        delete cleared.ghlLocationName;
+      }
+      if (toStep < 1) {
+        // Going back past auth — clear credentials
+        delete cleared.credentialId;
+        delete cleared.credentials;
+        delete cleared.credentialLabel;
+      }
+      return cleared;
+    });
+    setStep(toStep);
+  }
+
   async function handleStart() {
     setStartError(null);
     try {
@@ -183,7 +214,7 @@ export default function NewMigrationPage() {
               }
               setStep(2);
             }}
-            onBack={() => setStep(0)}
+            onBack={() => goBack(0)}
           />
         )}
         {step === 2 && (
@@ -192,7 +223,7 @@ export default function NewMigrationPage() {
               updateState({ ghlLocationId: locationId, ghlLocationName: locationName });
               setStep(3);
             }}
-            onBack={() => setStep(1)}
+            onBack={() => goBack(1)}
           />
         )}
         {step === 3 && state.connectorId && (state.credentials || state.credentialId) && (
@@ -204,7 +235,7 @@ export default function NewMigrationPage() {
               updateState({ fields, fieldMappings: mappings, extraTags, contactSource });
               setStep(4);
             }}
-            onBack={() => setStep(2)}
+            onBack={() => goBack(2)}
           />
         )}
         {step === 4 && (
@@ -215,7 +246,7 @@ export default function NewMigrationPage() {
                 {startError}
               </div>
             )}
-            <StepReview state={state as WizardState} onStart={handleStart} onBack={() => setStep(3)} />
+            <StepReview state={state as WizardState} onStart={handleStart} onBack={() => goBack(3)} />
           </>
         )}
       </div>
