@@ -151,6 +151,11 @@ export class PodiumConnector implements PlatformConnector {
     } while (cursor);
   }
 
+  /**
+   * Fetch ALL conversations in bulk. Messages fetched in parallel batches.
+   * contactSourceId is set to contactName (normalized) since Podium's
+   * conversation API doesn't return a contactUid/contactId.
+   */
   async *fetchConversations(
     creds: Record<string, string>
   ): AsyncGenerator<UniversalConversation[], void, unknown> {
@@ -171,154 +176,30 @@ export class PodiumConnector implements PlatformConnector {
       const conversations = data.data || [];
       if (conversations.length === 0) break;
 
+      // Fetch messages for all conversations in this batch in parallel (batches of 5)
       const mapped: UniversalConversation[] = [];
-      for (const conv of conversations) {
-        const messages = await fetchAllMessages(creds.accessToken, String(conv.uid));
-        mapped.push({
-          sourceId: String(conv.uid || conv.id),
-          contactSourceId: String(conv.contactUid || conv.contactId || ""),
-          channel: mapChannel(String(conv.channel || conv.channelType || "sms")),
-          messages,
-        });
+      for (let i = 0; i < conversations.length; i += 5) {
+        const chunk = conversations.slice(i, i + 5);
+        const results = await Promise.all(
+          chunk.map(async (conv: Record<string, unknown>) => {
+            const convId = String(conv.uid || conv.id);
+            const contactName = String(conv.contactName || "").trim();
+            const messages = await fetchAllMessages(creds.accessToken, convId);
+            return {
+              sourceId: convId,
+              // Use contactName as key — engine matches via name→ghlId map
+              contactSourceId: `name:${contactName.toLowerCase()}`,
+              channel: mapChannel(String(conv.channel || conv.channelType || "sms")),
+              messages,
+            } as UniversalConversation;
+          })
+        );
+        mapped.push(...results);
       }
+
       yield mapped;
       cursor = data.metadata?.cursor || data.nextCursor;
     } while (cursor);
-  }
-
-  /**
-   * Fetch ALL conversations for a specific contact.
-   * Tries multiple Podium API patterns in order:
-   *   1. GET /conversations?contactUid=X  (filtered)
-   *   2. Scan all conversations matching contactUid/contactId
-   */
-  async fetchConversationsForContact(
-    creds: Record<string, string>,
-    contactSourceId: string
-  ): Promise<UniversalConversation[]> {
-    const errors: string[] = [];
-
-    // Strategy 1: filtered endpoint
-    try {
-      const result = await this.fetchConversationsFiltered(creds, contactSourceId);
-      if (result.length > 0) return result;
-    } catch (e) {
-      errors.push(`filtered: ${e instanceof Error ? e.message : String(e)}`);
-    }
-
-    // Strategy 2: scan all and match
-    try {
-      const result = await this.fetchConversationsScan(creds, contactSourceId);
-      if (result.length > 0) return result;
-    } catch (e) {
-      errors.push(`scan: ${e instanceof Error ? e.message : String(e)}`);
-    }
-
-    // If all strategies produced errors (not just empty results), throw
-    if (errors.length > 0) {
-      throw new Error(`Podium conversation fetch failed for contact ${contactSourceId}: ${errors.join("; ")}`);
-    }
-
-    return [];
-  }
-
-  /**
-   * Fast path: use Podium's contactUid query parameter.
-   */
-  private async fetchConversationsFiltered(
-    creds: Record<string, string>,
-    contactSourceId: string
-  ): Promise<UniversalConversation[]> {
-    const result: UniversalConversation[] = [];
-    let cursor: string | undefined;
-
-    do {
-      const url = new URL(`${PODIUM_API_BASE}/conversations`);
-      url.searchParams.set("limit", "50");
-      url.searchParams.set("contactUid", contactSourceId);
-      if (cursor) url.searchParams.set("cursor", cursor);
-
-      const res = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${creds.accessToken}`, Accept: "application/json" },
-      });
-      if (!res.ok) {
-        const body = await res.text().catch(() => "");
-        throw new Error(`Podium GET /conversations?contactUid= returned ${res.status}: ${body.slice(0, 300)}`);
-      }
-      const data = await res.json();
-      const conversations = data.data || [];
-      if (conversations.length === 0) break;
-
-      for (const conv of conversations) {
-        const convId = String(conv.uid || conv.id);
-        const messages = await fetchAllMessages(creds.accessToken, convId);
-        result.push({
-          sourceId: convId,
-          contactSourceId,
-          channel: mapChannel(String(conv.channel || conv.channelType || "sms")),
-          messages,
-        });
-      }
-
-      cursor = data.metadata?.cursor || data.nextCursor;
-    } while (cursor);
-
-    return result;
-  }
-
-  /**
-   * Fallback: scan all conversations and match by contactUid/contactId.
-   */
-  private async fetchConversationsScan(
-    creds: Record<string, string>,
-    contactSourceId: string
-  ): Promise<UniversalConversation[]> {
-    const result: UniversalConversation[] = [];
-    let cursor: string | undefined;
-    let pagesScanned = 0;
-
-    do {
-      const url = new URL(`${PODIUM_API_BASE}/conversations`);
-      url.searchParams.set("limit", "50");
-      if (cursor) url.searchParams.set("cursor", cursor);
-
-      const res = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${creds.accessToken}`, Accept: "application/json" },
-      });
-      if (!res.ok) {
-        const body = await res.text().catch(() => "");
-        throw new Error(`Podium GET /conversations returned ${res.status}: ${body.slice(0, 300)}`);
-      }
-      const data = await res.json();
-      const conversations = data.data || [];
-      if (conversations.length === 0) break;
-
-      // Log first page structure for debugging
-      if (pagesScanned === 0 && conversations.length > 0) {
-        const sample = conversations[0];
-        console.log(`[Podium] Conversation sample keys: ${Object.keys(sample).join(", ")}`);
-        console.log(`[Podium] Sample contactUid=${sample.contactUid}, contactId=${sample.contactId}, uid=${sample.uid}, id=${sample.id}`);
-      }
-
-      for (const conv of conversations) {
-        const convContactId = String(conv.contactUid || conv.contactId || "");
-        if (convContactId !== contactSourceId) continue;
-
-        const convId = String(conv.uid || conv.id);
-        const messages = await fetchAllMessages(creds.accessToken, convId);
-        result.push({
-          sourceId: convId,
-          contactSourceId: convContactId,
-          channel: mapChannel(String(conv.channel || conv.channelType || "sms")),
-          messages,
-        });
-      }
-
-      pagesScanned++;
-      cursor = data.metadata?.cursor || data.nextCursor;
-    } while (cursor);
-
-    return result;
   }
 }
 

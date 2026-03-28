@@ -25,6 +25,19 @@ export async function DELETE(
     return NextResponse.json({ error: "Account not found" }, { status: 404 });
   }
 
+  // Delete related migrations and their records/logs first (foreign key constraint)
+  const migrations = await prisma.migration.findMany({
+    where: { connectorCredentialId: id },
+    select: { id: true },
+  });
+
+  if (migrations.length > 0) {
+    const migrationIds = migrations.map((m) => m.id);
+    await prisma.migrationLog.deleteMany({ where: { migrationId: { in: migrationIds } } });
+    await prisma.migrationRecord.deleteMany({ where: { migrationId: { in: migrationIds } } });
+    await prisma.migration.deleteMany({ where: { id: { in: migrationIds } } });
+  }
+
   await prisma.connectorCredential.delete({ where: { id } });
 
   return NextResponse.json({ success: true });

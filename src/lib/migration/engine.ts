@@ -15,6 +15,8 @@ import type { FieldMapping, UniversalConversation, UniversalAppointment } from "
 export class MigrationEngine {
   private migrationId: string;
   private sourceIdToGhlId = new Map<string, string>();
+  // For connectors (like Podium) where conversations use contactName instead of ID
+  private contactNameToGhlId = new Map<string, string>();
 
   constructor(migrationId: string) {
     this.migrationId = migrationId;
@@ -197,6 +199,12 @@ export class MigrationEngine {
 
           this.sourceIdToGhlId.set(contact.sourceId, result.contact.id);
 
+          // Also index by name for connectors that match conversations by contactName
+          const fullName = [contact.firstName, contact.lastName].filter(Boolean).join(" ").trim().toLowerCase();
+          if (fullName) {
+            this.contactNameToGhlId.set(`name:${fullName}`, result.contact.id);
+          }
+
           await prisma.migrationRecord.create({
             data: {
               migrationId: this.migrationId,
@@ -338,32 +346,55 @@ export class MigrationEngine {
         }
       }
     } else if (connector.fetchConversations) {
-      // Fallback: bulk fetch and match
+      // Bulk fetch and match — supports both sourceId and contactName matching
+      await this.log("INFO", `Fetching all conversations in bulk (${this.sourceIdToGhlId.size} contacts to match, ${this.contactNameToGhlId.size} name entries)...`);
+
+      // Group conversations by contact for a single transcript per contact
+      const convsByContact = new Map<string, UniversalConversation[]>();
+
       for await (const batch of connector.fetchConversations(creds)) {
         for (const conv of batch) {
-          const ghlContactId = this.sourceIdToGhlId.get(conv.contactSourceId);
+          // Try matching by source ID first, then by contact name
+          const ghlContactId =
+            this.sourceIdToGhlId.get(conv.contactSourceId) ||
+            this.contactNameToGhlId.get(conv.contactSourceId);
           if (!ghlContactId) continue;
 
-          const transcript = buildTranscript([conv], connector.name);
-          if (!transcript) continue;
+          if (!convsByContact.has(ghlContactId)) {
+            convsByContact.set(ghlContactId, []);
+          }
+          convsByContact.get(ghlContactId)!.push(conv);
+        }
+      }
+
+      await this.log("INFO", `Matched conversations to ${convsByContact.size} contacts`);
+
+      for (const [ghlContactId, convs] of convsByContact) {
+        const transcript = buildTranscript(convs, connector.name);
+        if (!transcript) continue;
+
+        try {
+          await acquireRateLimit("conversations");
 
           try {
-            await acquireRateLimit("conversations");
             await postInternalComment(ghlClient, {
               contactId: ghlContactId,
               locationId,
               message: transcript,
             });
-            await addContactNote(ghlClient, {
-              contactId: ghlContactId,
-              body: transcript,
-            });
-            processed++;
-          } catch (error) {
-            failed++;
-            const message = error instanceof Error ? error.message : String(error);
-            await this.log("ERROR", `Failed conversation for contact ${ghlContactId}: ${message}`);
+          } catch (err) {
+            await this.log("WARN", `Internal comment failed for ${ghlContactId}: ${err instanceof Error ? err.message : String(err)}`);
           }
+
+          await addContactNote(ghlClient, {
+            contactId: ghlContactId,
+            body: transcript,
+          });
+          processed++;
+        } catch (error) {
+          failed++;
+          const message = error instanceof Error ? error.message : String(error);
+          await this.log("ERROR", `Failed conversation for contact ${ghlContactId}: ${message}`);
         }
       }
     }
