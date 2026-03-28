@@ -3,6 +3,8 @@ import type {
   FieldSchema,
   FieldMapping,
   UniversalContact,
+  UniversalConversation,
+  UniversalMessage,
 } from "../../universal-model/types";
 import { inferFieldType } from "../base";
 
@@ -73,7 +75,7 @@ export class MondayConnector implements PlatformConnector {
 
   capabilities: ConnectorCapabilities = {
     contacts: true,
-    conversations: false,
+    conversations: true,
     opportunities: true,
     appointments: false,
   };
@@ -220,6 +222,61 @@ export class MondayConnector implements PlatformConnector {
 
       cursor = page?.cursor || null;
     } while (cursor);
+  }
+
+  async fetchConversationsForContact(
+    creds: Record<string, string>,
+    contactSourceId: string
+  ): Promise<UniversalConversation[]> {
+    const messages: UniversalMessage[] = [];
+
+    try {
+      const data = await this.graphql(
+        creds.apiToken,
+        `query ($itemId: [ID!]) {
+          items(ids: $itemId) {
+            updates {
+              id
+              text_body
+              created_at
+              creator {
+                name
+              }
+            }
+          }
+        }`,
+        { itemId: [contactSourceId] }
+      );
+
+      const items = data.items || [];
+      for (const item of items) {
+        for (const update of item.updates || []) {
+          const body = (update.text_body || "").trim();
+          if (!body) continue;
+
+          const creatorName = update.creator?.name || "Team";
+          messages.push({
+            sourceId: String(update.id),
+            direction: "outbound",
+            body: `[${creatorName}] ${body}`,
+            timestamp: new Date(update.created_at || Date.now()),
+          });
+        }
+      }
+    } catch {
+      // Updates fetch failed
+    }
+
+    if (messages.length === 0) return [];
+
+    return [
+      {
+        sourceId: `monday-item-${contactSourceId}`,
+        contactSourceId,
+        channel: "other" as const,
+        messages,
+      },
+    ];
   }
 }
 

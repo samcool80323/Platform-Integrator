@@ -3,6 +3,8 @@ import type {
   FieldSchema,
   FieldMapping,
   UniversalContact,
+  UniversalConversation,
+  UniversalMessage,
   UniversalOpportunity,
 } from "../../universal-model/types";
 import { inferFieldType } from "../base";
@@ -65,7 +67,7 @@ export class PipedriveConnector implements PlatformConnector {
 
   capabilities: ConnectorCapabilities = {
     contacts: true,
-    conversations: false,
+    conversations: true,
     opportunities: true,
     appointments: false,
   };
@@ -212,6 +214,107 @@ export class PipedriveConnector implements PlatformConnector {
       if (!data.additional_data?.pagination?.more_items_in_collection) break;
       start += limit;
     }
+  }
+
+  async fetchConversationsForContact(
+    creds: Record<string, string>,
+    contactSourceId: string
+  ): Promise<UniversalConversation[]> {
+    const messages: UniversalMessage[] = [];
+
+    // Fetch activities for this person
+    try {
+      let start = 0;
+      const limit = 100;
+      let hasMore = true;
+
+      while (hasMore) {
+        const res = await fetch(
+          this.buildUrl(`/persons/${contactSourceId}/activities`, creds, {
+            limit: String(limit),
+            start: String(start),
+          })
+        );
+
+        if (!res.ok) break;
+        const data = await res.json();
+        const activities = data.data || [];
+
+        for (const act of activities) {
+          const parts: string[] = [];
+          if (act.type) parts.push(`[${act.type}]`);
+          if (act.subject) parts.push(act.subject);
+          if (act.note) parts.push(act.note.replace(/<[^>]*>/g, "").trim());
+          if (act.public_description) parts.push(act.public_description);
+
+          const body = parts.join(" — ").trim();
+          if (!body) continue;
+
+          messages.push({
+            sourceId: `activity-${act.id}`,
+            direction: "outbound",
+            body,
+            timestamp: new Date(act.due_date && act.due_time
+              ? `${act.due_date}T${act.due_time}`
+              : act.add_time || Date.now()),
+          });
+        }
+
+        hasMore = !!data.additional_data?.pagination?.more_items_in_collection;
+        start += limit;
+      }
+    } catch {
+      // Activities fetch failed — continue with notes
+    }
+
+    // Fetch notes for this person
+    try {
+      let start = 0;
+      const limit = 100;
+      let hasMore = true;
+
+      while (hasMore) {
+        const res = await fetch(
+          this.buildUrl("/notes", creds, {
+            person_id: contactSourceId,
+            limit: String(limit),
+            start: String(start),
+          })
+        );
+
+        if (!res.ok) break;
+        const data = await res.json();
+        const notes = data.data || [];
+
+        for (const note of notes) {
+          const body = (note.content || "").replace(/<[^>]*>/g, "").trim();
+          if (!body) continue;
+
+          messages.push({
+            sourceId: `note-${note.id}`,
+            direction: "outbound",
+            body: `[Note] ${body}`,
+            timestamp: new Date(note.add_time || Date.now()),
+          });
+        }
+
+        hasMore = !!data.additional_data?.pagination?.more_items_in_collection;
+        start += limit;
+      }
+    } catch {
+      // Notes fetch failed — continue
+    }
+
+    if (messages.length === 0) return [];
+
+    return [
+      {
+        sourceId: `pipedrive-person-${contactSourceId}`,
+        contactSourceId,
+        channel: "other" as const,
+        messages,
+      },
+    ];
   }
 }
 

@@ -3,6 +3,8 @@ import type {
   FieldSchema,
   FieldMapping,
   UniversalContact,
+  UniversalConversation,
+  UniversalMessage,
 } from "../../universal-model/types";
 import { inferFieldType } from "../base";
 
@@ -73,7 +75,7 @@ export class ActiveCampaignConnector implements PlatformConnector {
 
   capabilities: ConnectorCapabilities = {
     contacts: true,
-    conversations: false,
+    conversations: true,
     opportunities: false,
     appointments: false,
   };
@@ -195,6 +197,59 @@ export class ActiveCampaignConnector implements PlatformConnector {
       if (contacts.length < limit) break;
       offset += limit;
     }
+  }
+
+  async fetchConversationsForContact(
+    creds: Record<string, string>,
+    contactSourceId: string
+  ): Promise<UniversalConversation[]> {
+    const messages: UniversalMessage[] = [];
+
+    try {
+      let offset = 0;
+      const limit = 100;
+
+      while (true) {
+        const res = await fetch(
+          `${this.getBaseUrl(creds)}/contacts/${contactSourceId}/notes?limit=${limit}&offset=${offset}`,
+          { headers: this.getHeaders(creds) }
+        );
+
+        if (!res.ok) break;
+        const data = await res.json();
+        const notes = data.notes || [];
+
+        if (notes.length === 0) break;
+
+        for (const note of notes) {
+          const body = (note.note || "").replace(/<[^>]*>/g, "").trim();
+          if (!body) continue;
+
+          messages.push({
+            sourceId: String(note.id),
+            direction: "outbound",
+            body: `[Note] ${body}`,
+            timestamp: new Date(note.cdate || note.mdate || Date.now()),
+          });
+        }
+
+        if (notes.length < limit) break;
+        offset += limit;
+      }
+    } catch {
+      // Notes fetch failed
+    }
+
+    if (messages.length === 0) return [];
+
+    return [
+      {
+        sourceId: `activecampaign-contact-${contactSourceId}`,
+        contactSourceId,
+        channel: "other" as const,
+        messages,
+      },
+    ];
   }
 }
 

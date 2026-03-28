@@ -3,12 +3,13 @@ import { createLocationClient } from "../ghl/auth";
 import { upsertContact } from "../ghl/contacts";
 import { ensureCustomFields } from "../ghl/custom-fields";
 import { postInternalComment, addContactNote } from "../ghl/conversations";
+import { getCalendars, createAppointment } from "../ghl/appointments";
 import { getConnector } from "../connectors/registry";
 import { decryptJson } from "../encryption";
 import { applyFieldMappings } from "./field-mapper";
 import { acquireRateLimit } from "./rate-limiter";
 import { emitProgress, emitComplete } from "./progress";
-import type { FieldMapping, UniversalConversation } from "../universal-model/types";
+import type { FieldMapping, UniversalConversation, UniversalAppointment } from "../universal-model/types";
 
 export class MigrationEngine {
   private migrationId: string;
@@ -96,6 +97,16 @@ export class MigrationEngine {
         );
       }
 
+      // Phase 4: Import appointments for migrated contacts
+      if (connector.fetchAppointments) {
+        await this.migrateAppointments(
+          connector,
+          creds,
+          ghlClient,
+          migration.ghlLocationId
+        );
+      }
+
       // If test limit was hit, pause for review
       if (hitTestLimit) {
         await prisma.migration.update({
@@ -114,7 +125,8 @@ export class MigrationEngine {
 
       const finalStatus =
         finalMigration.failedContacts > 0 ||
-        finalMigration.failedConversations > 0
+        finalMigration.failedConversations > 0 ||
+        finalMigration.failedAppointments > 0
           ? "COMPLETED_WITH_ERRORS"
           : "COMPLETED";
 
@@ -359,6 +371,141 @@ export class MigrationEngine {
     await this.log("INFO", `Conversations: ${processed} contacts imported, ${failed} failed`);
   }
 
+  /**
+   * Import appointments — try GHL calendar first, fall back to internal comment.
+   */
+  private async migrateAppointments(
+    connector: ReturnType<typeof getConnector> & {},
+    creds: Record<string, string>,
+    ghlClient: Awaited<ReturnType<typeof createLocationClient>>,
+    locationId: string
+  ): Promise<void> {
+    if (this.sourceIdToGhlId.size === 0) return;
+    if (!connector.fetchAppointments) return;
+
+    let processed = 0;
+    let failed = 0;
+    let calendarId: string | null = null;
+    let useCalendar = true;
+
+    await emitProgress({
+      migrationId: this.migrationId,
+      phase: "appointments",
+      processed: 0,
+      total: 0,
+      failed: 0,
+      message: "Fetching appointments...",
+    });
+
+    // Try to get a GHL calendar to create appointments in
+    try {
+      const calendars = await getCalendars(ghlClient, locationId);
+      if (calendars.length > 0) {
+        calendarId = calendars[0].id;
+        await this.log("INFO", `Using GHL calendar "${calendars[0].name}" for appointments`);
+      } else {
+        useCalendar = false;
+        await this.log("INFO", "No GHL calendars found — appointments will be posted as internal comments");
+      }
+    } catch {
+      useCalendar = false;
+      await this.log("INFO", "Could not fetch GHL calendars — appointments will be posted as internal comments");
+    }
+
+    // Collect appointments per contact for transcript fallback
+    const appointmentsByContact = new Map<string, UniversalAppointment[]>();
+
+    for await (const batch of connector.fetchAppointments(creds)) {
+      for (const appt of batch) {
+        const ghlContactId = this.sourceIdToGhlId.get(appt.contactSourceId);
+        if (!ghlContactId) continue;
+
+        if (useCalendar && calendarId) {
+          // Try to create in GHL calendar
+          try {
+            await acquireRateLimit("appointments");
+            await createAppointment(ghlClient, {
+              calendarId,
+              contactId: ghlContactId,
+              title: appt.title,
+              startTime: appt.startTime.toISOString(),
+              endTime: appt.endTime.toISOString(),
+              status: appt.status === "confirmed" ? "confirmed" : appt.status,
+              notes: appt.notes,
+            });
+            processed++;
+          } catch (error) {
+            // Calendar creation failed — collect for internal comment fallback
+            const message = error instanceof Error ? error.message : String(error);
+            await this.log("WARN", `Calendar appointment failed for ${ghlContactId}: ${message} — falling back to internal comment`);
+
+            if (!appointmentsByContact.has(ghlContactId)) {
+              appointmentsByContact.set(ghlContactId, []);
+            }
+            appointmentsByContact.get(ghlContactId)!.push(appt);
+          }
+        } else {
+          // No calendar — collect for internal comment
+          if (!appointmentsByContact.has(ghlContactId)) {
+            appointmentsByContact.set(ghlContactId, []);
+          }
+          appointmentsByContact.get(ghlContactId)!.push(appt);
+        }
+      }
+    }
+
+    // Post collected appointments as internal comments
+    for (const [ghlContactId, appointments] of appointmentsByContact) {
+      try {
+        const transcript = buildAppointmentTranscript(appointments, connector.name);
+        if (!transcript) continue;
+
+        await acquireRateLimit("appointments");
+
+        try {
+          await postInternalComment(ghlClient, {
+            contactId: ghlContactId,
+            locationId,
+            message: transcript,
+          });
+        } catch (err) {
+          await this.log("WARN", `Appointment internal comment failed for ${ghlContactId}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+
+        await addContactNote(ghlClient, {
+          contactId: ghlContactId,
+          body: transcript,
+        });
+
+        processed++;
+      } catch (error) {
+        failed++;
+        const message = error instanceof Error ? error.message : String(error);
+        await this.log("ERROR", `Failed appointment import for contact ${ghlContactId}: ${message}`);
+      }
+    }
+
+    await prisma.migration.update({
+      where: { id: this.migrationId },
+      data: {
+        processedAppointments: processed,
+        failedAppointments: failed,
+        totalAppointments: processed + failed,
+      },
+    });
+
+    await emitProgress({
+      migrationId: this.migrationId,
+      phase: "appointments",
+      processed,
+      total: processed + failed,
+      failed,
+      message: `Appointments: ${processed} imported, ${failed} failed`,
+    });
+
+    await this.log("INFO", `Appointments: ${processed} imported, ${failed} failed`);
+  }
+
   private async log(level: "INFO" | "WARN" | "ERROR" | "DEBUG", message: string) {
     await prisma.migrationLog.create({
       data: {
@@ -431,6 +578,55 @@ function buildTranscript(
     "",
     `${"Timestamp".padEnd(22)}${COL_SEP}${"From".padEnd(8)}${COL_SEP}Message`,
     "\u2500".repeat(22) + "\u2500".repeat(COL_SEP.length) + "\u2500".repeat(8) + "\u2500".repeat(COL_SEP.length) + "\u2500".repeat(10),
+    "",
+  ];
+
+  return [...header, ...lines].join("\n");
+}
+
+/**
+ * Build a formatted transcript of appointments for a contact.
+ * Used when appointments can't be added to a GHL calendar.
+ */
+function buildAppointmentTranscript(
+  appointments: UniversalAppointment[],
+  connectorName: string
+): string | null {
+  if (appointments.length === 0) return null;
+
+  // Sort by start time, oldest first
+  const sorted = [...appointments].sort(
+    (a, b) => a.startTime.getTime() - b.startTime.getTime()
+  );
+
+  const sep = "\u2500".repeat(50);
+
+  const lines: string[] = [];
+
+  for (const appt of sorted) {
+    const start = formatTimestamp(appt.startTime);
+    const end = formatTimestamp(appt.endTime);
+    const status = appt.status.charAt(0).toUpperCase() + appt.status.slice(1);
+    const parts = [
+      `${start.trim()}${COL_SEP}${appt.title}${COL_SEP}${status}`,
+    ];
+    if (appt.notes) {
+      parts.push(`${"".padEnd(22)}${COL_SEP}Notes: ${appt.notes}`);
+    }
+    parts.push(`${"".padEnd(22)}${COL_SEP}Ends: ${end.trim()}`);
+    lines.push(parts.join("\n"));
+  }
+
+  const header = [
+    `${connectorName.toUpperCase()} APPOINTMENT IMPORT`,
+    sep,
+    `Total appointments  ${sorted.length}`,
+    `Earliest            ${formatTimestamp(sorted[0].startTime).trim()}`,
+    `Latest              ${formatTimestamp(sorted[sorted.length - 1].startTime).trim()}`,
+    sep,
+    "",
+    `${"Date / Time".padEnd(22)}${COL_SEP}${"Title".padEnd(20)}${COL_SEP}Status`,
+    "\u2500".repeat(22) + "\u2500".repeat(COL_SEP.length) + "\u2500".repeat(20) + "\u2500".repeat(COL_SEP.length) + "\u2500".repeat(10),
     "",
   ];
 

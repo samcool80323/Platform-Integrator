@@ -3,6 +3,8 @@ import type {
   FieldSchema,
   FieldMapping,
   UniversalContact,
+  UniversalConversation,
+  UniversalMessage,
 } from "../../universal-model/types";
 import { inferFieldType } from "../base";
 
@@ -40,6 +42,8 @@ HubSpot uses "Private App" tokens — they are easy to create and more secure th
    - ✅ **crm.objects.contacts.read**
    - ✅ **crm.objects.companies.read** (optional)
    - ✅ **crm.objects.deals.read** (optional)
+   - ✅ **crm.objects.emails.read** (for conversation import)
+   - ✅ **crm.objects.notes.read** (for conversation import)
    > We only read/export data from HubSpot — no write access is needed.
 5. Click **"Create app"** button
 
@@ -78,7 +82,7 @@ export class HubSpotConnector implements PlatformConnector {
 
   capabilities: ConnectorCapabilities = {
     contacts: true,
-    conversations: false,
+    conversations: true,
     opportunities: true,
     appointments: false,
   };
@@ -214,6 +218,143 @@ export class HubSpotConnector implements PlatformConnector {
 
       after = data.paging?.next?.after;
     } while (after);
+  }
+
+  async fetchConversationsForContact(
+    creds: Record<string, string>,
+    contactSourceId: string
+  ): Promise<UniversalConversation[]> {
+    const headers = {
+      Authorization: `Bearer ${creds.accessToken}`,
+      Accept: "application/json",
+    };
+
+    const messages: UniversalMessage[] = [];
+
+    // Fetch associated emails
+    try {
+      const assocRes = await fetch(
+        `${HUBSPOT_API_BASE}/crm/v3/objects/contacts/${contactSourceId}/associations/emails`,
+        { headers }
+      );
+      if (assocRes.ok) {
+        const assocData = await assocRes.json();
+        const emailIds: string[] = (assocData.results || []).map(
+          (r: { id: string }) => r.id
+        );
+
+        // Fetch each email's content (batch up to 50)
+        for (let i = 0; i < emailIds.length; i += 50) {
+          const batch = emailIds.slice(i, i + 50);
+          const batchRes = await fetch(
+            `${HUBSPOT_API_BASE}/crm/v3/objects/emails/batch/read`,
+            {
+              method: "POST",
+              headers: { ...headers, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                inputs: batch.map((id) => ({ id })),
+                properties: [
+                  "hs_email_subject",
+                  "hs_email_text",
+                  "hs_email_direction",
+                  "hs_timestamp",
+                  "hs_email_sender_email",
+                ],
+              }),
+            }
+          );
+
+          if (batchRes.ok) {
+            const batchData = await batchRes.json();
+            for (const email of batchData.results || []) {
+              const p = email.properties || {};
+              const body = p.hs_email_text;
+              if (!body) continue;
+
+              const subject = p.hs_email_subject;
+              const fullBody = subject ? `Subject: ${subject}\n${body}` : body;
+              const direction =
+                p.hs_email_direction === "INCOMING_EMAIL" ? "inbound" : "outbound";
+
+              messages.push({
+                sourceId: email.id,
+                direction,
+                body: fullBody,
+                timestamp: p.hs_timestamp
+                  ? new Date(p.hs_timestamp)
+                  : new Date(email.createdAt || Date.now()),
+              });
+            }
+          }
+        }
+      }
+    } catch {
+      // Email fetch failed — continue with notes
+    }
+
+    // Fetch associated notes
+    try {
+      const notesAssocRes = await fetch(
+        `${HUBSPOT_API_BASE}/crm/v3/objects/contacts/${contactSourceId}/associations/notes`,
+        { headers }
+      );
+      if (notesAssocRes.ok) {
+        const notesAssocData = await notesAssocRes.json();
+        const noteIds: string[] = (notesAssocData.results || []).map(
+          (r: { id: string }) => r.id
+        );
+
+        for (let i = 0; i < noteIds.length; i += 50) {
+          const batch = noteIds.slice(i, i + 50);
+          const batchRes = await fetch(
+            `${HUBSPOT_API_BASE}/crm/v3/objects/notes/batch/read`,
+            {
+              method: "POST",
+              headers: { ...headers, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                inputs: batch.map((id) => ({ id })),
+                properties: ["hs_note_body", "hs_timestamp"],
+              }),
+            }
+          );
+
+          if (batchRes.ok) {
+            const batchData = await batchRes.json();
+            for (const note of batchData.results || []) {
+              const p = note.properties || {};
+              const body = p.hs_note_body;
+              if (!body) continue;
+
+              // Strip HTML tags from note body
+              const cleanBody = body.replace(/<[^>]*>/g, "").trim();
+              if (!cleanBody) continue;
+
+              messages.push({
+                sourceId: note.id,
+                direction: "outbound",
+                body: `[Note] ${cleanBody}`,
+                timestamp: p.hs_timestamp
+                  ? new Date(p.hs_timestamp)
+                  : new Date(note.createdAt || Date.now()),
+              });
+            }
+          }
+        }
+      }
+    } catch {
+      // Notes fetch failed — continue
+    }
+
+    if (messages.length === 0) return [];
+
+    return [
+      {
+        sourceId: `hubspot-contact-${contactSourceId}`,
+        contactSourceId,
+        channel: "email" as const,
+        messages,
+      },
+    ];
   }
 }
 
