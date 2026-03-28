@@ -99,8 +99,18 @@ export function autoMapFields(sourceFields: FieldSchema[]): FieldMapping[] {
   };
 
   for (const field of sourceFields) {
+    // Skip internal/reference fields — never map these
+    if (field.key.startsWith("_")) continue;
+
     const norm = normalize(field.key);
-    const ghlKey = normMap[norm] || aliases[norm];
+    // Also try without "attr:" prefix for better alias matching
+    // e.g. "attr:Birthday" → "birthday" matches alias → "dateOfBirth"
+    const normStripped = field.key.startsWith("attr:")
+      ? normalize(field.key.slice(5))
+      : null;
+    const ghlKey =
+      normMap[norm] || aliases[norm] ||
+      (normStripped ? normMap[normStripped] || aliases[normStripped] : undefined);
 
     if (ghlKey) {
       mappings.push({

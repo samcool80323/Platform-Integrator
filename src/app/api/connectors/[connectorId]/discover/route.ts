@@ -47,10 +47,13 @@ export async function POST(
     const defaults = connector.getDefaultFieldMapping();
 
     // Defaults take priority — override auto-mapped entries
+    // Also filter out internal fields like _samplePayload
     const defaultKeys = new Set(defaults.map((d) => d.sourceField));
     const mappings = [
       ...defaults,
-      ...autoMapped.filter((m) => !defaultKeys.has(m.sourceField)),
+      ...autoMapped.filter(
+        (m) => !defaultKeys.has(m.sourceField) && !m.sourceField.startsWith("_")
+      ),
     ];
 
     // Ensure every mapped field has a corresponding field entry.

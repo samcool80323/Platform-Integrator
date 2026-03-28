@@ -69,14 +69,21 @@ export class MigrationEngine {
 
       const customFieldDefs = fieldMappings
         .filter((m) => m.targetType === "custom")
+        .filter((m) => !m.sourceField.startsWith("_")) // Exclude internal fields like _samplePayload
         .map((m) => ({
           key: m.sourceField,
-          name: m.sourceField
-            .replace(/^attr:/, "")
-            .replace(/[_-]/g, " ")
-            .replace(/\b\w/g, (c) => c.toUpperCase()),
+          name: cleanFieldName(m.sourceField),
           dataType: "TEXT",
         }));
+
+      // Clear stale custom field cache for this location+connector
+      // so fields are recreated with correct clean names
+      await prisma.customFieldMapping.deleteMany({
+        where: {
+          ghlLocationId: migration.ghlLocationId,
+          connectorId: migration.connectorId,
+        },
+      });
 
       const customFieldIdMap = await ensureCustomFields(
         ghlClient,
@@ -612,6 +619,24 @@ export class MigrationEngine {
       },
     });
   }
+}
+
+/**
+ * Clean a source field key into a human-readable GHL custom field name.
+ * Strips prefixes like "attr:", "custom:", replaces separators, title-cases.
+ * e.g. "attr:Birthday" → "Birthday"
+ *      "attr:Opportunity Value" → "Opportunity Value"
+ *      "Initial_Contact" → "Initial Contact"
+ *      "is it spam ?" → "Is It Spam ?"
+ */
+function cleanFieldName(sourceField: string): string {
+  return sourceField
+    .replace(/^attr:/i, "")    // Strip "attr:" prefix (case-insensitive)
+    .replace(/^custom:/i, "")  // Strip "custom:" prefix
+    .replace(/^_+/, "")        // Strip leading underscores
+    .replace(/[_-]/g, " ")     // Replace underscores/dashes with spaces
+    .replace(/\b\w/g, (c) => c.toUpperCase()) // Title case
+    .trim();
 }
 
 // ── Transcript builder ──────────────────────────────────────────────

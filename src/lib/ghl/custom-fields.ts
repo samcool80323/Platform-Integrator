@@ -32,30 +32,17 @@ export async function createCustomField(
 }
 
 /**
- * Create a custom field folder in GHL.
- * Folders are created WITHOUT a dataType — only name + model.
- * If this fails, returns null and fields will be created at top level.
- */
-async function createFolder(
-  client: GHLClient,
-  locationId: string,
-  name: string
-): Promise<string | null> {
-  try {
-    const result = await client.post<{ customField?: { id: string } }>(
-      `/locations/${locationId}/customFields`,
-      { name, model: "contact" }
-    );
-    return result.customField?.id || null;
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Ensure all required custom fields exist for a connector.
- * Creates a folder named after the connector (e.g. "Podium") and puts
- * all custom fields inside it with clean names (e.g. "Opportunity Value").
+ *
+ * Creates fields with clean names (no "attr:" prefix, proper casing).
+ * If a folder named after the connector already exists in GHL (manually created),
+ * fields are placed inside it. Otherwise fields go to root level.
+ *
+ * Note: GHL's folder creation API (POST /custom-fields/folder) does NOT support
+ * contact custom fields — only Custom Objects and Company. So we cannot
+ * programmatically create folders for contacts. Users can create the folder
+ * manually in GHL and we'll detect and use it.
+ *
  * Returns a mapping of sourceFieldKey → GHL custom field ID.
  */
 export async function ensureCustomFields(
@@ -87,25 +74,23 @@ export async function ensureCustomFields(
   // Fetch existing GHL custom fields
   const existingFields = await getCustomFields(client, locationId);
 
-  // Find or create the connector folder (e.g. "Podium")
-  // Folders show up as custom fields with no dataType
-  let folderId: string | null = null;
-
+  // Look for a manually-created folder named after the connector (e.g. "Podium").
+  // Folders appear as custom field entries with no dataType.
   const existingFolder = existingFields.find(
-    (f) => f.name === connectorName && !f.dataType
+    (f) =>
+      f.name.toLowerCase() === connectorName.toLowerCase() &&
+      (!f.dataType || f.dataType === "")
   );
+  const folderId = existingFolder?.id || null;
 
-  if (existingFolder) {
-    folderId = existingFolder.id;
-  } else {
-    folderId = await createFolder(client, locationId, connectorName);
-  }
-
-  // Create missing fields inside the folder
+  // Create missing fields (inside folder if one exists, otherwise at root)
   for (const field of uncached) {
     // Check if field already exists by name (in folder or anywhere)
     const existing = existingFields.find(
-      (f) => f.name === field.name && (folderId ? f.parentId === folderId : true)
+      (f) =>
+        f.name.toLowerCase() === field.name.toLowerCase() &&
+        f.dataType && // Must be a real field, not a folder
+        (folderId ? f.parentId === folderId : true)
     );
 
     let fieldId: string;

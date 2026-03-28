@@ -10,7 +10,7 @@ export function applyFieldMappings(
   customFieldIdMap: Record<string, string> // sourceFieldKey → GHL custom field ID
 ): Partial<GHLContact> {
   const result: Record<string, unknown> = {};
-  const customFieldValues: { id: string; field_value: unknown }[] = [];
+  const customFieldValues: { id: string; value: unknown }[] = [];
 
   for (const mapping of mappings) {
     const rawValue = getSourceValue(contact, mapping.sourceField);
@@ -26,7 +26,7 @@ export function applyFieldMappings(
         customFieldIdMap[mapping.sourceField] ||
         customFieldIdMap[mapping.targetField.replace("custom:", "")];
       if (ghlFieldId) {
-        customFieldValues.push({ id: ghlFieldId, field_value: value });
+        customFieldValues.push({ id: ghlFieldId, value });
       }
     }
   }
