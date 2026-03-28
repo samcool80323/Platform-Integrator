@@ -54,13 +54,11 @@ export default function MigrationDetailPage() {
     loadMigration();
     loadLogs();
 
-    // SSE for real-time updates
     let es: EventSource | null = new EventSource(`/api/events?migrationId=${migrationId}`);
     es.onmessage = () => { loadMigration(); loadLogs(); };
     es.onerror = () => {
       es?.close();
       es = null;
-      // Reconnect after 3 seconds if page is still open
       setTimeout(() => {
         if (document.visibilityState !== "hidden") {
           loadMigration();
@@ -69,7 +67,6 @@ export default function MigrationDetailPage() {
       }, 3000);
     };
 
-    // Poll every 10s as fallback (handles SSE disconnects, background tabs)
     const poll = setInterval(() => { loadMigration(); loadLogs(); }, 10000);
 
     return () => { es?.close(); clearInterval(poll); };
@@ -105,9 +102,9 @@ export default function MigrationDetailPage() {
 
   if (loading || !migration) {
     return (
-      <div className="flex items-center justify-center gap-2.5 py-24 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-        Loading...
+      <div className="flex flex-col items-center justify-center gap-3 py-24 text-muted-foreground">
+        <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+        <span className="text-sm">Loading migration...</span>
       </div>
     );
   }
@@ -134,7 +131,7 @@ export default function MigrationDetailPage() {
               <h1 className="text-2xl font-bold text-foreground tracking-tight">Migration</h1>
               <StatusPill status={migration.status} />
             </div>
-            <p className="mt-1 text-muted-foreground capitalize">
+            <p className="mt-1.5 text-muted-foreground capitalize">
               {migration.connectorId} → {migration.ghlLocationName}
             </p>
             {migration.startedAt && (
@@ -147,7 +144,8 @@ export default function MigrationDetailPage() {
           </div>
           <div className="flex items-center gap-2">
             {isPaused && (
-              <Button size="sm" onClick={handlePushAll} disabled={pushing} className="gap-2">
+              <Button size="sm" onClick={handlePushAll} disabled={pushing}
+                className="gap-2 gradient-primary border-0 shadow-md shadow-indigo-500/20">
                 {pushing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
                 {pushing ? "Starting..." : "Push All Contacts"}
               </Button>
@@ -161,20 +159,23 @@ export default function MigrationDetailPage() {
         </div>
       </div>
 
-      {/* Running in background banner */}
+      {/* Running banner */}
       {isRunning && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-center gap-3">
-          <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+        <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4 flex items-center gap-3 shadow-glow-sm">
+          <div className="relative flex h-5 w-5 items-center justify-center">
+            <span className="animate-ping absolute h-4 w-4 rounded-full bg-indigo-400 opacity-30" />
+            <Loader2 className="h-4 w-4 animate-spin text-indigo-500 relative" />
+          </div>
           <div className="text-sm">
             <span className="font-semibold text-foreground">Migration is running in the background.</span>{" "}
-            <span className="text-muted-foreground">You can navigate away — it will keep running. Come back anytime to check progress.</span>
+            <span className="text-muted-foreground">You can navigate away — it will keep running.</span>
           </div>
         </div>
       )}
 
       {/* Paused review banner */}
       {isPaused && (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-5 space-y-3">
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/8 p-5 space-y-3">
           <div className="flex items-center gap-2 text-sm font-semibold text-amber-600 dark:text-amber-400">
             <Pause className="h-4 w-4" />
             Test import complete — review before continuing
@@ -184,7 +185,8 @@ export default function MigrationDetailPage() {
             Check them in GoHighLevel to make sure the data looks correct — names, phone numbers, tags, custom fields, etc.
           </p>
           <div className="flex gap-3">
-            <Button size="sm" onClick={handlePushAll} disabled={pushing} className="gap-2">
+            <Button size="sm" onClick={handlePushAll} disabled={pushing}
+              className="gap-2 gradient-primary border-0 shadow-md shadow-indigo-500/20">
               {pushing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
               {pushing ? "Starting full import..." : "Looks good — push all contacts"}
             </Button>
@@ -221,8 +223,8 @@ export default function MigrationDetailPage() {
           </Button>
         </CardHeader>
         <CardContent>
-          <div className="max-h-[420px] space-y-0.5 overflow-y-auto rounded-xl p-4 font-mono text-xs leading-relaxed"
-            style={{ background: "#09090b" }}>
+          <div className="max-h-[420px] space-y-0.5 overflow-y-auto rounded-xl p-4 font-mono text-xs leading-relaxed border border-white/[0.03]"
+            style={{ background: "#0a0a10" }}>
             {logs.length === 0 ? (
               <p className="text-white/10 py-6 text-center">
                 {isRunning ? "Waiting for log entries..." : "No logs for this migration."}
@@ -232,15 +234,15 @@ export default function MigrationDetailPage() {
                 <div key={log.id} className={`py-0.5 ${
                   log.level === "ERROR" ? "text-red-400"
                     : log.level === "WARN" ? "text-amber-400"
-                      : "text-zinc-300"
+                      : "text-zinc-400"
                 }`}>
-                  <span className="text-white/8 select-none">
+                  <span className="text-white/[0.06] select-none">
                     {new Date(log.timestamp).toLocaleTimeString()}{" "}
                   </span>
                   <span className={`mr-2 font-bold ${
                     log.level === "ERROR" ? "text-red-500"
                       : log.level === "WARN" ? "text-amber-500"
-                        : "text-zinc-400/40"
+                        : "text-zinc-500/40"
                   }`}>
                     [{log.level.padEnd(5)}]
                   </span>
@@ -259,20 +261,28 @@ function ProgressCard({ title, icon: Icon, total, processed, failed, progress, i
   title: string; icon: React.ComponentType<{ className?: string }>; total: number;
   processed: number; failed: number; progress: number; isRunning: boolean;
 }) {
-  const barColor = failed > 0 && progress === 100
-    ? "bg-amber-500" : progress === 100 ? "bg-emerald-500" : "gradient-primary";
+  const barGradient = failed > 0 && progress === 100
+    ? "linear-gradient(90deg, #d97706, #f59e0b)"
+    : progress === 100
+      ? "linear-gradient(90deg, #059669, #10b981)"
+      : "linear-gradient(90deg, #4f46e5, #6366f1)";
   return (
-    <Card>
+    <Card className="group hover:shadow-card-hover transition-all duration-300">
       <CardContent className="p-5">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Icon className="h-4 w-4 text-zinc-600" />
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-zinc-500/10 to-zinc-600/5">
+              <Icon className="h-4 w-4 text-zinc-500" />
+            </div>
             <span className="text-sm font-semibold text-foreground">{title}</span>
           </div>
           <span className="text-2xl font-bold text-foreground tracking-tight">{progress}%</span>
         </div>
         <div className="h-2.5 rounded-full bg-muted overflow-hidden">
-          <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${progress}%` }} />
+          <div
+            className="h-full rounded-full transition-all duration-700 ease-out"
+            style={{ width: `${progress}%`, background: barGradient }}
+          />
         </div>
         <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
@@ -280,7 +290,11 @@ function ProgressCard({ title, icon: Icon, total, processed, failed, progress, i
           </span>
           <span>of {total}</span>
           {failed > 0 && <span className="flex items-center gap-1 text-red-500"><XCircle className="h-3 w-3" /> {failed} failed</span>}
-          {isRunning && <span className="flex items-center gap-1 text-zinc-600 ml-auto"><Loader2 className="h-3 w-3 animate-spin" /> Running</span>}
+          {isRunning && (
+            <span className="flex items-center gap-1 text-indigo-500 ml-auto">
+              <Loader2 className="h-3 w-3 animate-spin" /> Running
+            </span>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -290,7 +304,7 @@ function ProgressCard({ title, icon: Icon, total, processed, failed, progress, i
 function StatusPill({ status }: { status: string }) {
   const config: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; className: string }> = {
     PENDING: { label: "Pending", icon: Clock, className: "bg-muted text-muted-foreground" },
-    RUNNING: { label: "Running", icon: Loader2, className: "bg-zinc-500/8 text-zinc-600 dark:text-zinc-400" },
+    RUNNING: { label: "Running", icon: Loader2, className: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" },
     COMPLETED: { label: "Done", icon: CheckCircle2, className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
     COMPLETED_WITH_ERRORS: { label: "Partial", icon: AlertTriangle, className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
     FAILED: { label: "Failed", icon: XCircle, className: "bg-red-500/10 text-red-600 dark:text-red-400" },

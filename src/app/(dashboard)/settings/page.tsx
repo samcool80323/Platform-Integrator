@@ -125,7 +125,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl gradient-primary shadow-md shadow-sm">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl gradient-primary shadow-lg shadow-indigo-500/20">
               <Settings2 className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -200,7 +200,7 @@ export default function SettingsPage() {
       <div className="space-y-4">
         <div>
           <h2 className="text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
-            <Link2 className="h-5 w-5 text-zinc-600" />
+            <Link2 className="h-5 w-5 text-indigo-500" />
             OAuth Platforms
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -219,7 +219,7 @@ export default function SettingsPage() {
 
           return (
             <Card key={connector.id} id={`connector-${connector.id}`}
-              className={`transition-all ${isExpanded ? "shadow-glow border-primary/20" : ""}`}>
+              className={`transition-all duration-300 ${isExpanded ? "shadow-glow border-indigo-500/20" : "hover:shadow-card-hover"}`}>
               <CardHeader className="cursor-pointer select-none"
                 onClick={() => setExpandedConnector(isExpanded ? null : connector.id)}>
                 <div className="flex items-center justify-between">

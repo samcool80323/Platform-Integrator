@@ -79,11 +79,11 @@ export function StepSelectSource({ onSelect }: StepSelectSourceProps) {
             <button
               key={connector.id}
               onClick={() => onSelect(connector.id, connector.name)}
-              className="group flex flex-col rounded-2xl border border-border bg-card p-5 text-left shadow-card transition-all duration-200 hover:shadow-card-hover hover:border-primary/30"
+              className="group flex flex-col rounded-2xl border border-border bg-card p-5 text-left shadow-card transition-all duration-200 hover:shadow-card-hover hover:border-indigo-500/25"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-zinc-500/10 text-base font-bold text-zinc-600 group-hover:gradient-primary group-hover:text-white transition-all duration-200">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-zinc-500/10 to-zinc-600/5 text-base font-bold text-zinc-600 group-hover:gradient-primary group-hover:text-white transition-all duration-300">
                     {connector.name[0]}
                   </div>
                   <div>
@@ -95,7 +95,7 @@ export function StepSelectSource({ onSelect }: StepSelectSourceProps) {
                     </p>
                   </div>
                 </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground/20 transition-all group-hover:text-primary group-hover:translate-x-0.5" />
+                <ArrowRight className="h-4 w-4 text-muted-foreground/20 transition-all duration-300 group-hover:text-indigo-500 group-hover:translate-x-0.5" />
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {caps.map((cap) => (

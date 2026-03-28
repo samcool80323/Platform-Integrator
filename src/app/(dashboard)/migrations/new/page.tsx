@@ -157,19 +157,19 @@ export default function NewMigrationPage() {
             <div key={s.label} className="flex flex-1 items-center gap-1">
               <div className="flex items-center gap-2.5">
                 <div
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all duration-200 ${
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all duration-300 ${
                     done
-                      ? "bg-emerald-600 text-white shadow-sm"
+                      ? "gradient-success shadow-md shadow-emerald-500/20"
                       : active
-                        ? "bg-foreground text-background shadow-sm"
+                        ? "gradient-primary shadow-md shadow-indigo-500/20"
                         : "bg-muted text-muted-foreground"
                   }`}
                 >
-                  {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                  {done ? <Check className="h-3.5 w-3.5 text-white" /> : <span className={done || active ? "text-white" : ""}>{i + 1}</span>}
                 </div>
                 <span
-                  className={`hidden md:block text-xs font-medium whitespace-nowrap ${
-                    active ? "text-foreground" : "text-muted-foreground/60"
+                  className={`hidden md:block text-xs font-medium whitespace-nowrap transition-colors ${
+                    active ? "text-foreground" : done ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground/50"
                   }`}
                 >
                   {s.label}
@@ -177,7 +177,7 @@ export default function NewMigrationPage() {
               </div>
               {i < STEPS.length - 1 && (
                 <div className="flex-1 mx-1">
-                  <div className={`h-px w-full transition-colors ${done ? "bg-emerald-500" : "bg-border"}`} />
+                  <div className={`h-px w-full transition-all duration-500 ${done ? "bg-emerald-500" : "bg-border"}`} />
                 </div>
               )}
             </div>
@@ -186,9 +186,9 @@ export default function NewMigrationPage() {
       </div>
 
       {/* Step hint */}
-      <div className="rounded-xl bg-secondary/60 border border-primary/10 px-4 py-3">
+      <div className="rounded-xl bg-accent/50 border border-indigo-500/10 px-4 py-3">
         <p className="text-sm">
-          <span className="font-semibold text-primary">Step {step + 1}:</span>{" "}
+          <span className="font-semibold text-accent-foreground">Step {step + 1}:</span>{" "}
           <span className="text-muted-foreground">{STEPS[step].description}</span>
         </p>
       </div>

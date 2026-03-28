@@ -157,7 +157,7 @@ export function StepReview({ state, onStart, onBack }: StepReviewProps) {
               size="lg"
               onClick={handleStart}
               disabled={starting}
-              className="w-full h-12 text-[15px] gap-2.5"
+              className="w-full h-12 text-[15px] gap-2.5 gradient-primary border-0 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:opacity-90 transition-all"
             >
               {starting ? (
                 <><Loader2 className="h-5 w-5 animate-spin" /> Starting...</>

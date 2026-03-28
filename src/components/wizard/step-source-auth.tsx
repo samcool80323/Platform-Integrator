@@ -265,8 +265,8 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
                     onClick={() => setSelectedAccountId(account.id)}
                     className={`flex items-center justify-between rounded-xl border p-4 cursor-pointer transition-all duration-200 ${
                       selectedAccountId === account.id
-                        ? "border-primary bg-primary/5 shadow-glow"
-                        : "border-border hover:border-primary/20 hover:shadow-card-hover"
+                        ? "border-indigo-500/30 bg-indigo-500/5 shadow-glow-sm"
+                        : "border-border hover:border-indigo-500/20 hover:shadow-card-hover"
                     }`}
                   >
                     <div className="flex items-center gap-3">
