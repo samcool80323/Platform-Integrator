@@ -218,7 +218,6 @@ async function fetchAllMessages(
 
   do {
     const url = new URL(`${PODIUM_API_BASE}/conversations/${conversationUid}/messages`);
-    url.searchParams.set("limit", "100");
     if (cursor) url.searchParams.set("cursor", cursor);
 
     const res = await fetch(url.toString(), {
