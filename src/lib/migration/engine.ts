@@ -199,10 +199,23 @@ export class MigrationEngine {
 
           this.sourceIdToGhlId.set(contact.sourceId, result.contact.id);
 
-          // Also index by name for connectors that match conversations by contactName
+          // Index by name for connectors that match conversations by contactName
+          // Try multiple name formats to maximize matching
           const fullName = [contact.firstName, contact.lastName].filter(Boolean).join(" ").trim().toLowerCase();
           if (fullName) {
             this.contactNameToGhlId.set(`name:${fullName}`, result.contact.id);
+          }
+          // Also index by the original raw name if available (may differ from first+last split)
+          const rawName = String(contact.rawData?.name || "").trim().toLowerCase();
+          if (rawName && rawName !== fullName) {
+            this.contactNameToGhlId.set(`name:${rawName}`, result.contact.id);
+          }
+          // Index by phone and email too as fallback matching keys
+          if (contact.phone) {
+            this.contactNameToGhlId.set(`phone:${contact.phone}`, result.contact.id);
+          }
+          if (contact.email) {
+            this.contactNameToGhlId.set(`email:${contact.email.toLowerCase()}`, result.contact.id);
           }
 
           await prisma.migrationRecord.create({
@@ -351,14 +364,27 @@ export class MigrationEngine {
 
       // Group conversations by contact for a single transcript per contact
       const convsByContact = new Map<string, UniversalConversation[]>();
+      let totalConvs = 0;
+      let unmatchedSamples: string[] = [];
+
+      // Log a few name map entries for debugging
+      const nameMapSample = Array.from(this.contactNameToGhlId.keys()).slice(0, 5);
+      await this.log("DEBUG", `Name map sample: ${nameMapSample.join(", ")}`);
 
       for await (const batch of connector.fetchConversations(creds)) {
         for (const conv of batch) {
+          totalConvs++;
           // Try matching by source ID first, then by contact name
           const ghlContactId =
             this.sourceIdToGhlId.get(conv.contactSourceId) ||
             this.contactNameToGhlId.get(conv.contactSourceId);
-          if (!ghlContactId) continue;
+
+          if (!ghlContactId) {
+            if (unmatchedSamples.length < 5) {
+              unmatchedSamples.push(conv.contactSourceId);
+            }
+            continue;
+          }
 
           if (!convsByContact.has(ghlContactId)) {
             convsByContact.set(ghlContactId, []);
@@ -367,7 +393,10 @@ export class MigrationEngine {
         }
       }
 
-      await this.log("INFO", `Matched conversations to ${convsByContact.size} contacts`);
+      if (unmatchedSamples.length > 0) {
+        await this.log("DEBUG", `Unmatched conversation contactSourceIds (sample): ${unmatchedSamples.join(", ")}`);
+      }
+      await this.log("INFO", `Matched ${convsByContact.size} of ${totalConvs} conversations to contacts`);
 
       for (const [ghlContactId, convs] of convsByContact) {
         const transcript = buildTranscript(convs, connector.name);
