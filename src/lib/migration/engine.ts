@@ -86,6 +86,9 @@ export class MigrationEngine {
         customFieldDefs
       );
 
+      // Rebuild maps from previously imported contacts (needed for "Push All" resume)
+      await this.rebuildMapsFromDb();
+
       // Phase 2: Migrate contacts
       const hitTestLimit = await this.migrateContacts(
         connector,
@@ -158,6 +161,31 @@ export class MigrationEngine {
       await emitComplete(this.migrationId, "failed", { error: message });
       throw error;
     }
+  }
+
+  /**
+   * On resume ("Push All"), reload already-processed contacts from DB
+   * so sourceIdToGhlId is populated for conversation/appointment matching.
+   */
+  private async rebuildMapsFromDb(): Promise<void> {
+    const existing = await prisma.migrationRecord.findMany({
+      where: {
+        migrationId: this.migrationId,
+        entityType: "CONTACT",
+        status: "SUCCESS",
+      },
+      select: { sourceId: true, ghlId: true },
+    });
+
+    if (existing.length === 0) return;
+
+    for (const record of existing) {
+      if (record.ghlId) {
+        this.sourceIdToGhlId.set(record.sourceId, record.ghlId);
+      }
+    }
+
+    await this.log("INFO", `Resumed with ${existing.length} previously imported contacts`);
   }
 
   private async migrateContacts(

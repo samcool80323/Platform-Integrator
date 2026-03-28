@@ -53,10 +53,26 @@ export default function MigrationDetailPage() {
   useEffect(() => {
     loadMigration();
     loadLogs();
-    const eventSource = new EventSource(`/api/events?migrationId=${migrationId}`);
-    eventSource.onmessage = () => { loadMigration(); };
-    eventSource.onerror = () => { eventSource.close(); };
-    return () => eventSource.close();
+
+    // SSE for real-time updates
+    let es: EventSource | null = new EventSource(`/api/events?migrationId=${migrationId}`);
+    es.onmessage = () => { loadMigration(); loadLogs(); };
+    es.onerror = () => {
+      es?.close();
+      es = null;
+      // Reconnect after 3 seconds if page is still open
+      setTimeout(() => {
+        if (document.visibilityState !== "hidden") {
+          loadMigration();
+          loadLogs();
+        }
+      }, 3000);
+    };
+
+    // Poll every 10s as fallback (handles SSE disconnects, background tabs)
+    const poll = setInterval(() => { loadMigration(); loadLogs(); }, 10000);
+
+    return () => { es?.close(); clearInterval(poll); };
   }, [migrationId]);
 
   async function loadMigration() {
@@ -75,7 +91,10 @@ export default function MigrationDetailPage() {
     loadMigration();
   }
 
+  const [pushing, setPushing] = useState(false);
+
   async function handlePushAll() {
+    setPushing(true);
     await fetch(`/api/migrations/${migrationId}/start`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -128,8 +147,9 @@ export default function MigrationDetailPage() {
           </div>
           <div className="flex items-center gap-2">
             {isPaused && (
-              <Button size="sm" onClick={handlePushAll} className="gap-2">
-                <ArrowRight className="h-4 w-4" /> Push All Contacts
+              <Button size="sm" onClick={handlePushAll} disabled={pushing} className="gap-2">
+                {pushing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                {pushing ? "Starting..." : "Push All Contacts"}
               </Button>
             )}
             {isFailed && (
@@ -140,6 +160,17 @@ export default function MigrationDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Running in background banner */}
+      {isRunning && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-center gap-3">
+          <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+          <div className="text-sm">
+            <span className="font-semibold text-foreground">Migration is running in the background.</span>{" "}
+            <span className="text-muted-foreground">You can navigate away — it will keep running. Come back anytime to check progress.</span>
+          </div>
+        </div>
+      )}
 
       {/* Paused review banner */}
       {isPaused && (
@@ -153,8 +184,9 @@ export default function MigrationDetailPage() {
             Check them in GoHighLevel to make sure the data looks correct — names, phone numbers, tags, custom fields, etc.
           </p>
           <div className="flex gap-3">
-            <Button size="sm" onClick={handlePushAll} className="gap-2">
-              <ArrowRight className="h-4 w-4" /> Looks good — push all contacts
+            <Button size="sm" onClick={handlePushAll} disabled={pushing} className="gap-2">
+              {pushing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+              {pushing ? "Starting full import..." : "Looks good — push all contacts"}
             </Button>
             <Button variant="outline" size="sm" onClick={() => window.history.back()} className="gap-2">
               Go back and adjust mapping
