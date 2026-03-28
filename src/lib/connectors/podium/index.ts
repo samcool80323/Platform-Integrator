@@ -152,9 +152,8 @@ export class PodiumConnector implements PlatformConnector {
   }
 
   /**
-   * Fetch ALL conversations in bulk. Messages fetched in parallel batches.
-   * contactSourceId is set to contactName (normalized) since Podium's
-   * conversation API doesn't return a contactUid/contactId.
+   * Fetch ALL conversations in bulk. Messages fetched in parallel batches of 5.
+   * Each conversation has a nested `data` object with the full contact (data.uid = contact UID).
    */
   async *fetchConversations(
     creds: Record<string, string>
@@ -162,7 +161,6 @@ export class PodiumConnector implements PlatformConnector {
     let cursor: string | undefined;
     do {
       const url = new URL(`${PODIUM_API_BASE}/conversations`);
-      url.searchParams.set("limit", "50");
       if (cursor) url.searchParams.set("cursor", cursor);
 
       const res = await fetch(url.toString(), {
@@ -172,33 +170,39 @@ export class PodiumConnector implements PlatformConnector {
         const body = await res.text().catch(() => "");
         throw new Error(`Podium conversations API error: ${res.status} ${body.slice(0, 300)}`);
       }
-      const data = await res.json();
-      const conversations = data.data || [];
+      const json = await res.json();
+      const conversations = json.data || [];
       if (conversations.length === 0) break;
 
-      // Fetch messages for all conversations in this batch in parallel (batches of 5)
+      // Fetch messages in parallel batches of 5
       const mapped: UniversalConversation[] = [];
       for (let i = 0; i < conversations.length; i += 5) {
         const chunk = conversations.slice(i, i + 5);
         const results = await Promise.all(
           chunk.map(async (conv: Record<string, unknown>) => {
-            const convId = String(conv.uid || conv.id);
-            const contactName = String(conv.contactName || "").trim();
-            const messages = await fetchAllMessages(creds.accessToken, convId);
+            const convUid = String(conv.uid);
+            // The contact is nested in conv.data with its own uid
+            const contact = conv.data as Record<string, unknown> | null;
+            const contactUid = contact?.uid ? String(contact.uid) : "";
+
+            if (!contactUid) return null;
+
+            const messages = await fetchAllMessages(creds.accessToken, convUid);
+            if (messages.length === 0) return null;
+
             return {
-              sourceId: convId,
-              // Use contactName as key — engine matches via name→ghlId map
-              contactSourceId: `name:${contactName.toLowerCase()}`,
-              channel: mapChannel(String(conv.channel || conv.channelType || "sms")),
+              sourceId: convUid,
+              contactSourceId: contactUid,
+              channel: mapChannel(String(conv.channel || "sms")),
               messages,
             } as UniversalConversation;
           })
         );
-        mapped.push(...results);
+        mapped.push(...results.filter((r): r is UniversalConversation => r !== null));
       }
 
-      yield mapped;
-      cursor = data.metadata?.cursor || data.nextCursor;
+      if (mapped.length > 0) yield mapped;
+      cursor = json.metadata?.cursor || json.nextCursor;
     } while (cursor);
   }
 }
