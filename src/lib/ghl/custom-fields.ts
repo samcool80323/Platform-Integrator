@@ -74,11 +74,13 @@ export async function ensureCustomFields(
   // Fetch existing GHL custom fields
   const existingFields = await getCustomFields(client, locationId);
 
-  // Look for a manually-created folder named after the connector (e.g. "Podium").
+  // Look for a manually-created folder to organize custom fields.
+  // Tries "Custom" first, then the connector name (e.g. "Podium") as fallback.
   // Folders appear as custom field entries with no dataType.
+  const FOLDER_NAMES = ["custom", connectorName.toLowerCase()];
   const existingFolder = existingFields.find(
     (f) =>
-      f.name.toLowerCase() === connectorName.toLowerCase() &&
+      FOLDER_NAMES.includes(f.name.toLowerCase()) &&
       (!f.dataType || f.dataType === "")
   );
   const folderId = existingFolder?.id || null;
