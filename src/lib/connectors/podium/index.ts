@@ -162,9 +162,13 @@ export class PodiumConnector implements PlatformConnector {
   ): Promise<UniversalConversation[]> {
     const headers = { Authorization: `Bearer ${creds.accessToken}`, Accept: "application/json" };
 
-    // Step 1: Get the contact to find their conversation UIDs
-    const contactRes = await fetch(`${PODIUM_API_BASE}/contacts/${contactSourceId}`, { headers });
+    // Step 1: GET /contacts/{uid} → read conversations[].uid
+    const contactUrl = `${PODIUM_API_BASE}/contacts/${contactSourceId}`;
+    console.log(`[Podium] Fetching contact convos: GET ${contactUrl}`);
+    const contactRes = await fetch(contactUrl, { headers });
     if (!contactRes.ok) {
+      const errBody = await contactRes.text().catch(() => "");
+      console.error(`[Podium] Contact fetch failed: ${contactRes.status} ${errBody.slice(0, 200)}`);
       if (contactRes.status === 404) return [];
       throw new Error(`Podium contact fetch error: ${contactRes.status}`);
     }
@@ -173,16 +177,20 @@ export class PodiumConnector implements PlatformConnector {
     const contact = contactData.data || contactData;
     const convRefs = (contact.conversations || []) as { uid: string }[];
 
+    console.log(`[Podium] Contact ${contactSourceId}: ${convRefs.length} conversations found (uids: ${convRefs.map(r => r.uid).join(", ")})`);
+
     if (convRefs.length === 0) return [];
 
-    // Step 2: Fetch messages for each conversation in parallel (batches of 5)
+    // Step 2: For each conversation uid, GET /conversations/{uid}/messages
     const results: UniversalConversation[] = [];
 
     for (let i = 0; i < convRefs.length; i += 5) {
       const chunk = convRefs.slice(i, i + 5);
       const batch = await Promise.all(
         chunk.map(async (ref) => {
+          console.log(`[Podium] Fetching messages: GET /conversations/${ref.uid}/messages`);
           const messages = await fetchAllMessages(creds.accessToken, ref.uid);
+          console.log(`[Podium] Conversation ${ref.uid}: ${messages.length} messages`);
           if (messages.length === 0) return null;
           return {
             sourceId: ref.uid,
