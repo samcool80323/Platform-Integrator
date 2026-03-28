@@ -11,12 +11,16 @@ async function getOrCreateConversation(
   locationId: string
 ): Promise<string> {
   // Search for an existing conversation first
-  const search = await client.get<{
-    conversations?: { id: string }[];
-  }>("/conversations/search", { contactId, locationId });
+  try {
+    const search = await client.get<{
+      conversations?: { id: string }[];
+    }>("/conversations/search", { contactId, locationId });
 
-  const existing = search?.conversations?.[0];
-  if (existing?.id) return existing.id;
+    const existing = search?.conversations?.[0];
+    if (existing?.id) return existing.id;
+  } catch {
+    // Search failed — try creating directly
+  }
 
   // No existing conversation — create one
   const created = await client.post<{
@@ -32,7 +36,7 @@ async function getOrCreateConversation(
 /**
  * Post an internal comment on a contact's conversation in GHL.
  * First creates/finds the conversation, then posts the message.
- * Type: "InternalComment" — visible only to team, not the contact.
+ * STRICTLY type: "InternalComment" — visible only to team, not the contact.
  */
 export async function postInternalComment(
   client: GHLClient,
@@ -42,17 +46,25 @@ export async function postInternalComment(
     message: string;
   }
 ): Promise<unknown> {
+  console.log(`[GHL] Posting internal comment for contact ${data.contactId} in location ${data.locationId}`);
+
   const conversationId = await getOrCreateConversation(
     client,
     data.contactId,
     data.locationId
   );
 
-  return client.post("/conversations/messages", {
+  console.log(`[GHL] Got conversation ${conversationId}, posting InternalComment...`);
+
+  const result = await client.post("/conversations/messages", {
     type: "InternalComment",
     conversationId,
+    contactId: data.contactId,
     message: data.message,
   });
+
+  console.log(`[GHL] InternalComment posted successfully`);
+  return result;
 }
 
 /**
