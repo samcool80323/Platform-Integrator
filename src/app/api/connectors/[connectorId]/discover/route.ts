@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { decryptJson } from "@/lib/encryption";
 import { getConnector } from "@/lib/connectors/registry";
 import { autoMapFields } from "@/lib/connectors/base";
+import { ensureFreshOAuthCredentials } from "@/lib/connectors/oauth-refresh";
 
 export async function POST(
   req: NextRequest,
@@ -23,17 +24,21 @@ export async function POST(
   try {
     const body = await req.json();
     let credentials: Record<string, string> = body.credentials || {};
+    const credentialId: string | undefined = body.credentialId;
 
     // If a saved credentialId is provided, load credentials from DB
-    if (body.credentialId) {
+    if (credentialId) {
       const record = await prisma.connectorCredential.findFirst({
-        where: { id: body.credentialId, userId: session.user.id },
+        where: { id: credentialId, userId: session.user.id },
       });
       if (!record) {
         return NextResponse.json({ error: "Saved account not found" }, { status: 404 });
       }
       credentials = decryptJson<Record<string, string>>(record.credentials);
     }
+
+    // Refresh OAuth token if expired
+    credentials = await ensureFreshOAuthCredentials(connectorId, credentials, credentialId);
 
     const fields = await connector.discoverFields(credentials);
 

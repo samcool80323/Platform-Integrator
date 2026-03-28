@@ -6,6 +6,7 @@ import { postInternalComment, addContactNote } from "../ghl/conversations";
 import { getCalendars, createAppointment } from "../ghl/appointments";
 import { getConnector } from "../connectors/registry";
 import { decryptJson } from "../encryption";
+import { ensureFreshOAuthCredentials } from "../connectors/oauth-refresh";
 import { applyFieldMappings } from "./field-mapper";
 import { acquireRateLimit } from "./rate-limiter";
 import { emitProgress, emitComplete } from "./progress";
@@ -28,9 +29,17 @@ export class MigrationEngine {
     const connector = getConnector(migration.connectorId);
     if (!connector) throw new Error(`Connector ${migration.connectorId} not found`);
 
-    const creds = decryptJson<Record<string, string>>(
+    let creds = decryptJson<Record<string, string>>(
       migration.connectorCredential.credentials
     );
+
+    // Refresh OAuth token if expired (e.g. Podium)
+    creds = await ensureFreshOAuthCredentials(
+      migration.connectorId,
+      creds,
+      migration.connectorCredentialId
+    );
+
     const fieldMappings = migration.fieldMappings as unknown as FieldMapping[];
 
     // Update status to RUNNING

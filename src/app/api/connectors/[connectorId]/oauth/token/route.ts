@@ -22,8 +22,14 @@ export async function GET(
   try {
     const tokenData = JSON.parse(decrypt(tokenCookie));
 
-    // Return token to client and clear the cookie
-    const response = NextResponse.json({ credentials: { accessToken: tokenData.accessToken } });
+    // Return all OAuth data to client (refresh token + expiry needed for auto-refresh)
+    const credentials: Record<string, string> = {
+      accessToken: tokenData.accessToken,
+    };
+    if (tokenData.refreshToken) credentials.refreshToken = tokenData.refreshToken;
+    if (tokenData.expiresAt) credentials.expiresAt = String(tokenData.expiresAt);
+
+    const response = NextResponse.json({ credentials });
     response.cookies.delete(`oauth_token_${connectorId}`);
     return response;
   } catch {
