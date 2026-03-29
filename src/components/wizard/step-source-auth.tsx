@@ -5,8 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   CheckCircle2,
   AlertCircle,
@@ -130,7 +128,6 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
         const testData = await testRes.json();
         setTestResult(testData);
 
-        // Auto-save and continue if test passed — no manual steps needed
         if (testData.valid) {
           const autoLabel = testData.accountName
             ? `${testData.accountName} (Podium)`
@@ -143,10 +140,10 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
           const saveData = await saveRes.json();
           if (saveRes.ok) {
             onAuthenticated({ credentialId: saveData.account.id, label: saveData.account.label });
-            return; // done — wizard advances to next step
+            return;
           }
         }
-        setMode("add"); // fallback if auto-save failed
+        setMode("add");
       } else {
         setOauthError(data.error || "Failed to retrieve access token.");
         setOauthStatus("error");
@@ -217,9 +214,9 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
 
   if (!connector || loadingAccounts) {
     return (
-      <div className="flex items-center justify-center gap-2.5 py-20 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-        Loading...
+      <div className="flex items-center justify-center gap-2 py-20 text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin text-accent-foreground" />
+        <span className="text-[13px]">Loading...</span>
       </div>
     );
   }
@@ -236,65 +233,65 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
         <ChevronLeft className="h-4 w-4" /> Back
       </Button>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-500/10">
-              <KeyRound className="h-4 w-4 text-zinc-600" />
-            </div>
-            Connect to {connector.name}
-          </CardTitle>
-          <CardDescription>
-            {isOAuth
-              ? `Authorize access to ${connector.name} via OAuth. No password sharing needed.`
-              : `Enter your ${connector.name} API credentials. They're encrypted and saved for reuse.`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
+      <div className="rounded-lg border border-border bg-card shadow-xs">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-secondary">
+            <KeyRound className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div>
+            <h3 className="text-[15px] font-semibold text-foreground">Connect to {connector.name}</h3>
+            <p className="text-[13px] text-muted-foreground">
+              {isOAuth
+                ? `Authorize access via OAuth. No password sharing needed.`
+                : `Enter API credentials. Encrypted and saved for reuse.`}
+            </p>
+          </div>
+        </div>
+        <div className="p-5 space-y-5">
 
           {/* Saved accounts */}
           {mode === "select" && savedAccounts.length > 0 && (
-            <div className="space-y-4">
-              <p className="text-sm font-semibold text-foreground">
+            <div className="space-y-3">
+              <p className="text-[13px] font-medium text-foreground">
                 Previously connected accounts
               </p>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {savedAccounts.map((account) => (
                   <div
                     key={account.id}
                     onClick={() => setSelectedAccountId(account.id)}
-                    className={`flex items-center justify-between rounded-xl border p-4 cursor-pointer transition-all duration-200 ${
+                    className={`flex items-center justify-between rounded-lg border p-3.5 cursor-pointer transition-all duration-150 ${
                       selectedAccountId === account.id
-                        ? "border-indigo-500/30 bg-indigo-500/5 shadow-glow-sm"
-                        : "border-border hover:border-indigo-500/20 hover:shadow-card-hover"
+                        ? "border-accent-foreground/25 bg-accent"
+                        : "border-border hover:border-accent-foreground/15 hover:bg-secondary/50"
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all ${
-                        selectedAccountId === account.id ? "gradient-primary text-white" : "bg-muted"
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
+                        selectedAccountId === account.id ? "gradient-primary text-white" : "bg-secondary"
                       }`}>
                         <User className="h-4 w-4" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold">{account.label}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[13px] font-medium">{account.label}</p>
+                        <p className="text-[12px] text-muted-foreground">
                           Added {new Date(account.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       {account.isValid ? (
-                        <Badge variant="secondary" className="text-xs text-emerald-600 dark:text-emerald-400 gap-1 rounded-lg">
+                        <span className="inline-flex items-center gap-1 rounded-md bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">
                           <CheckCircle2 className="h-3 w-3" /> Valid
-                        </Badge>
+                        </span>
                       ) : (
-                        <Badge variant="secondary" className="text-xs text-amber-600 dark:text-amber-400 gap-1 rounded-lg">
+                        <span className="inline-flex items-center gap-1 rounded-md bg-warning/10 px-2 py-0.5 text-[11px] font-medium text-warning">
                           <AlertCircle className="h-3 w-3" /> Expired
-                        </Badge>
+                        </span>
                       )}
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDeleteAccount(account.id); }}
-                        className="text-muted-foreground hover:text-red-500 transition-colors p-1.5 rounded-lg hover:bg-red-500/10"
+                        className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded-md hover:bg-destructive/8"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -305,9 +302,9 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
               <button
                 type="button"
                 onClick={() => { setMode("add"); setSelectedAccountId(null); }}
-                className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                className="flex items-center gap-1.5 text-[13px] font-medium text-accent-foreground hover:underline"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-3.5 w-3.5" />
                 Add a different account
               </button>
               <Button
@@ -324,10 +321,10 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
 
           {/* Add new account */}
           {mode === "add" && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {savedAccounts.length > 0 && (
                 <button type="button" onClick={() => setMode("select")}
-                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  className="flex items-center gap-1 text-[13px] text-muted-foreground hover:text-foreground transition-colors">
                   <ChevronLeft className="h-3.5 w-3.5" /> Back to saved accounts
                 </button>
               )}
@@ -335,15 +332,15 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
               {isOAuth && (
                 <div className="space-y-4">
                   {scopes.length > 0 && (
-                    <div className="rounded-xl border border-border bg-secondary/50 p-4 space-y-3">
-                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                        <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                    <div className="rounded-lg border border-border bg-secondary/50 p-4 space-y-2.5">
+                      <div className="flex items-center gap-1.5 text-[13px] font-medium text-foreground">
+                        <ShieldCheck className="h-4 w-4 text-success" />
                         Permissions (read-only):
                       </div>
-                      <ul className="space-y-2">
+                      <ul className="space-y-1.5">
                         {scopes.map((scope) => (
-                          <li key={scope} className="flex items-start gap-2 text-sm">
-                            <Badge variant="secondary" className="mt-0.5 shrink-0 text-[11px] font-mono px-1.5 rounded-md">{scope}</Badge>
+                          <li key={scope} className="flex items-start gap-2 text-[13px]">
+                            <code className="mt-0.5 shrink-0 text-[11px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{scope}</code>
                             <span className="text-muted-foreground">{scopeDescriptions[scope] || scope}</span>
                           </li>
                         ))}
@@ -374,11 +371,11 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
                     <StatusAlert variant="warning">
                       <AlertCircle className="h-4 w-4 shrink-0" />
                       <div className="space-y-2">
-                        <p className="font-semibold">{connector.name} OAuth not configured</p>
+                        <p className="font-medium">{connector.name} OAuth not configured</p>
                         <p className="text-muted-foreground font-normal">Register a developer app and enter credentials in Settings first.</p>
                         <Button asChild size="sm" variant="outline">
                           <a href={`/settings?oauth_setup_needed=${connectorId}`}>
-                            Go to Settings <ExternalLink className="ml-2 h-3 w-3" />
+                            Go to Settings <ExternalLink className="ml-1.5 h-3 w-3" />
                           </a>
                         </Button>
                       </div>
@@ -390,7 +387,6 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
                       disabled={oauthStatus === "fetching"}
                       className="gap-2"
                       onClick={() => {
-                        // Save wizard state so it survives the OAuth redirect
                         try {
                           sessionStorage.setItem(
                             "migration_wizard_state",
@@ -406,16 +402,16 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
                   )}
 
                   <button type="button" onClick={() => setShowManual((p) => !p)}
-                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors">
                     {showManual ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                     {showManual ? "Hide manual entry" : "Have a token already? Enter manually"}
                   </button>
 
                   {showManual && (
-                    <div className="rounded-xl border border-border p-4 space-y-3">
-                      <p className="text-xs text-muted-foreground">Paste an existing access token below.</p>
+                    <div className="rounded-lg border border-border p-4 space-y-2.5">
+                      <p className="text-[12px] text-muted-foreground">Paste an existing access token below.</p>
                       <div className="space-y-1.5">
-                        <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Access Token</Label>
+                        <Label className="text-[12px] font-medium text-muted-foreground">Access Token</Label>
                         <Input type="password" placeholder="Paste token here"
                           value={credentials.accessToken || ""}
                           onChange={(e) => setCredentials((p) => ({ ...p, accessToken: e.target.value }))} />
@@ -427,35 +423,35 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
 
               {!isOAuth && (
                 <div className="space-y-4">
-                  <div className="rounded-xl border border-border bg-secondary/50 p-4">
-                    <p className="text-sm text-muted-foreground">
+                  <div className="rounded-lg border border-border bg-secondary/50 p-3.5">
+                    <p className="text-[13px] text-muted-foreground">
                       Enter your client&apos;s {connector.name} API credentials.
                       Typically found in the platform&apos;s settings or developer section.
                     </p>
                   </div>
                   {fields.map((field) => (
                     <div key={field.key} className="space-y-1.5">
-                      <Label htmlFor={field.key} className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      <Label htmlFor={field.key} className="text-[12px] font-medium text-muted-foreground">
                         {field.label}
                       </Label>
                       <Input id={field.key} type={field.secret ? "password" : "text"}
                         placeholder={field.placeholder}
                         value={credentials[field.key] || ""}
                         onChange={(e) => setCredentials((p) => ({ ...p, [field.key]: e.target.value }))} />
-                      {field.helpText && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
+                      {field.helpText && <p className="text-[12px] text-muted-foreground">{field.helpText}</p>}
                     </div>
                   ))}
                 </div>
               )}
 
               {(hasCredentials || oauthStatus === "done") && (
-                <div className="rounded-xl border border-border bg-secondary/50 p-4 space-y-3">
-                  <Label htmlFor="label" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <div className="rounded-lg border border-border bg-secondary/50 p-4 space-y-2.5">
+                  <Label htmlFor="label" className="text-[12px] font-medium text-muted-foreground">
                     Account Name
                   </Label>
                   <Input id="label" placeholder={`e.g. Dr. Smith's ${connector.name}`}
                     value={label} onChange={(e) => setLabel(e.target.value)} />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[12px] text-muted-foreground">
                     A recognizable name so you can reuse this connection for future migrations.
                   </p>
                 </div>
@@ -475,7 +471,7 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
                 </StatusAlert>
               )}
 
-              <div className="flex flex-wrap gap-3 pt-1">
+              <div className="flex flex-wrap gap-2 pt-1">
                 {(!isOAuth || showManual) && oauthStatus !== "done" && (
                   <Button variant="outline" onClick={handleTest} disabled={testing || !hasCredentials} className="gap-2">
                     {testing ? <><Loader2 className="h-4 w-4 animate-spin" /> Testing...</> : <><RefreshCw className="h-4 w-4" /> Test Connection</>}
@@ -489,21 +485,21 @@ export function StepSourceAuth({ connectorId, onAuthenticated, onBack }: StepSou
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
 
 function StatusAlert({ variant, children }: { variant: "success" | "error" | "warning" | "info"; children: React.ReactNode }) {
   const styles = {
-    success: "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    error: "border-red-500/20 bg-red-500/10 text-red-500",
-    warning: "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    info: "border-zinc-600/20 bg-zinc-500/10 text-zinc-700 dark:text-zinc-400",
+    success: "border-success/20 bg-success/8 text-success",
+    error: "border-destructive/15 bg-destructive/8 text-destructive",
+    warning: "border-warning/20 bg-warning/10 text-warning",
+    info: "border-border bg-secondary text-muted-foreground",
   };
   return (
-    <div className={`flex items-start gap-2.5 rounded-xl border p-4 text-sm font-medium ${styles[variant]}`}>
+    <div className={`flex items-start gap-2 rounded-lg border p-3.5 text-[13px] font-medium ${styles[variant]}`}>
       {children}
     </div>
   );

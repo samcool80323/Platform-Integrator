@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   ChevronLeft,
   Rocket,
@@ -58,84 +56,84 @@ export function StepReview({ state, onStart, onBack }: StepReviewProps) {
         <ChevronLeft className="h-4 w-4" /> Back
       </Button>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Review Migration</CardTitle>
-          <CardDescription>
+      <div className="rounded-lg border border-border bg-card shadow-xs">
+        <div className="px-5 py-4 border-b border-border">
+          <h3 className="text-[15px] font-semibold text-foreground">Review Migration</h3>
+          <p className="mt-1 text-[13px] text-muted-foreground">
             Double-check everything below. Once started, data will begin importing into GHL.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
+          </p>
+        </div>
+        <div className="p-5 space-y-5">
           {/* Source & Dest */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-border p-5">
-              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-3">
-                <Database className="h-3.5 w-3.5" />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-border p-4">
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                <Database className="h-3 w-3" />
                 Source
               </div>
-              <p className="text-lg font-bold text-foreground tracking-tight capitalize">{state.connectorName}</p>
+              <p className="text-[15px] font-semibold text-foreground capitalize">{state.connectorName}</p>
               {state.credentialLabel && (
-                <p className="mt-1 text-sm text-muted-foreground">{state.credentialLabel}</p>
+                <p className="mt-0.5 text-[13px] text-muted-foreground">{state.credentialLabel}</p>
               )}
             </div>
-            <div className="rounded-xl border border-border p-5">
-              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground mb-3">
-                <MapPin className="h-3.5 w-3.5" />
+            <div className="rounded-lg border border-border p-4">
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                <MapPin className="h-3 w-3" />
                 Destination
               </div>
-              <p className="text-lg font-bold text-foreground tracking-tight">{state.ghlLocationName}</p>
+              <p className="text-[15px] font-semibold text-foreground">{state.ghlLocationName}</p>
             </div>
           </div>
 
           {/* Tags & Source */}
-          <div className="rounded-xl border border-border p-5 space-y-3">
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-              <Tag className="h-3.5 w-3.5" />
+          <div className="rounded-lg border border-border p-4 space-y-2.5">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <Tag className="h-3 w-3" />
               Tags & Source
             </div>
             <div className="flex flex-wrap gap-1.5">
-              <span className="inline-flex items-center rounded-lg border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+              <span className="inline-flex items-center rounded-md border border-border bg-secondary px-2 py-0.5 text-[12px] font-medium text-foreground">
                 {state.connectorId}
               </span>
               {(state.extraTags || []).map((tag) => (
-                <span key={tag} className="inline-flex items-center rounded-lg border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+                <span key={tag} className="inline-flex items-center rounded-md border border-border bg-secondary px-2 py-0.5 text-[12px] font-medium text-foreground">
                   {tag}
                 </span>
               ))}
             </div>
             {state.contactSource && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-[13px] text-muted-foreground">
                 Contact source: <span className="font-medium text-foreground">{state.contactSource}</span>
               </p>
             )}
           </div>
 
           {/* Mappings */}
-          <div className="rounded-xl border border-border p-5 space-y-4">
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-              <Columns3 className="h-3.5 w-3.5" />
+          <div className="rounded-lg border border-border p-4 space-y-3">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <Columns3 className="h-3 w-3" />
               Field Mappings
             </div>
             <div className="flex gap-2">
-              <Badge variant="secondary" className="gap-1.5 text-xs px-3 py-1 rounded-lg">
-                <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+              <span className="inline-flex items-center gap-1 rounded-md bg-success/10 px-2 py-0.5 text-[12px] font-medium text-success">
+                <CheckCircle2 className="h-3 w-3" />
                 {standardMappings.length} standard
-              </Badge>
+              </span>
               {customMappings.length > 0 && (
-                <Badge variant="outline" className="gap-1.5 text-xs px-3 py-1 rounded-lg">
+                <span className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-[12px] font-medium text-muted-foreground">
                   <Plus className="h-3 w-3" />
-                  {customMappings.length} custom fields to create
-                </Badge>
+                  {customMappings.length} custom
+                </span>
               )}
             </div>
-            <div className="rounded-xl bg-muted/50 p-3.5 space-y-1.5">
+            <div className="rounded-md bg-secondary p-3 space-y-1">
               {displayMappings.map((m) => (
-                <div key={m.sourceField} className="flex items-center gap-2 text-sm">
+                <div key={m.sourceField} className="flex items-center gap-2 text-[13px]">
                   <span className="text-muted-foreground truncate min-w-0">{m.sourceField}</span>
-                  <ArrowRight className="h-3 w-3 text-muted-foreground/30 shrink-0" />
+                  <ArrowRight className="h-3 w-3 text-muted-foreground/25 shrink-0" />
                   <span className="font-medium text-foreground truncate min-w-0">{m.targetField.replace("custom:", "")}</span>
                   {m.targetType === "custom" && (
-                    <span className="inline-flex items-center rounded-md border border-border px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground shrink-0">new</span>
+                    <span className="inline-flex items-center rounded px-1 py-px text-[10px] font-semibold bg-accent text-accent-foreground shrink-0">new</span>
                   )}
                 </div>
               ))}
@@ -143,7 +141,7 @@ export function StepReview({ state, onStart, onBack }: StepReviewProps) {
                 <button
                   type="button"
                   onClick={() => setShowAllMappings(true)}
-                  className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors pt-1"
+                  className="text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors pt-1"
                 >
                   Show all {state.fieldMappings.length} mappings
                 </button>
@@ -152,25 +150,26 @@ export function StepReview({ state, onStart, onBack }: StepReviewProps) {
           </div>
 
           {/* Start */}
-          <div className="border-t border-border pt-6">
+          <div className="border-t border-border pt-5">
             <Button
               size="lg"
               onClick={handleStart}
               disabled={starting}
-              className="w-full h-12 text-[15px] gap-2.5 gradient-primary border-0 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:opacity-90 transition-all"
+              variant="accent"
+              className="w-full h-10 gap-2"
             >
               {starting ? (
-                <><Loader2 className="h-5 w-5 animate-spin" /> Starting...</>
+                <><Loader2 className="h-4 w-4 animate-spin" /> Starting...</>
               ) : (
-                <><Rocket className="h-5 w-5" /> Test with 10 Contacts First</>
+                <><Rocket className="h-4 w-4" /> Test with 10 Contacts First</>
               )}
             </Button>
-            <p className="mt-3 text-center text-xs text-muted-foreground">
+            <p className="mt-2.5 text-center text-[12px] text-muted-foreground">
               We&apos;ll import 10 contacts first so you can review them in GHL before pushing all.
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

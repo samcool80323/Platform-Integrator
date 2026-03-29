@@ -6,12 +6,11 @@ import {
   ArrowRightLeft,
   CheckCircle2,
   ArrowRight,
-  Layers,
   Loader2,
   XCircle,
   Settings,
-  TrendingUp,
   Zap,
+  ArrowUpRight,
 } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -36,30 +35,17 @@ export default async function DashboardPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 stagger-children">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">
-              Dashboard
-            </h1>
-            {stats.running > 0 && (
-              <span className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500/10 px-2.5 py-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500" />
-                </span>
-                {stats.running} running
-              </span>
-            )}
-          </div>
-          <p className="mt-1.5 text-muted-foreground">
+          <h1 className="text-[22px] text-foreground">Dashboard</h1>
+          <p className="mt-1 text-[14px] text-muted-foreground">
             Track and manage your CRM data migrations
           </p>
         </div>
         <Link href="/migrations/new">
-          <Button size="lg" className="gap-2 gradient-primary border-0 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:opacity-90 transition-all">
+          <Button size="lg" className="gap-2" variant="accent">
             <Plus className="h-4 w-4" />
             New Migration
           </Button>
@@ -67,195 +53,221 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total"
-          value={stats.total}
-          icon={Layers}
-          gradientClass="from-zinc-500/10 to-zinc-600/5"
-          iconClass="text-zinc-600 dark:text-zinc-400"
-        />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard title="Total" value={stats.total} accent={false} />
         <StatCard
           title="Running"
           value={stats.running}
-          icon={Zap}
-          gradientClass="from-indigo-500/10 to-violet-500/5"
-          iconClass="text-indigo-600 dark:text-indigo-400"
-          pulse={stats.running > 0}
+          accent={stats.running > 0}
+          live={stats.running > 0}
         />
-        <StatCard
-          title="Completed"
-          value={stats.completed}
-          icon={CheckCircle2}
-          gradientClass="from-emerald-500/10 to-teal-500/5"
-          iconClass="text-emerald-600 dark:text-emerald-400"
-        />
-        <StatCard
-          title="Failed"
-          value={stats.failed}
-          icon={XCircle}
-          gradientClass="from-red-500/10 to-rose-500/5"
-          iconClass="text-red-600 dark:text-red-400"
-        />
+        <StatCard title="Completed" value={stats.completed} variant="success" />
+        <StatCard title="Failed" value={stats.failed} variant="destructive" />
       </div>
 
       {/* Migration list */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">Recent Migrations</CardTitle>
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[15px] font-semibold text-foreground">
+            Recent Migrations
+          </h2>
           {migrations.length > 0 && (
-            <span className="text-sm text-muted-foreground">
-              Last {migrations.length}
+            <span className="text-[13px] text-muted-foreground">
+              {migrations.length} total
             </span>
           )}
-        </CardHeader>
-        <CardContent>
-          {migrations.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="space-y-2">
-              {migrations.map((m) => {
-                const progress = m.totalContacts > 0
-                  ? Math.round((m.processedContacts / m.totalContacts) * 100)
+        </div>
+
+        {migrations.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div className="space-y-1.5">
+            {migrations.map((m) => {
+              const progress =
+                m.totalContacts > 0
+                  ? Math.round(
+                      (m.processedContacts / m.totalContacts) * 100
+                    )
                   : 0;
-                return (
-                  <Link
-                    key={m.id}
-                    href={`/migrations/${m.id}`}
-                    className="group flex items-center gap-4 rounded-xl border border-border p-4 transition-all duration-200 hover:shadow-card-hover hover:border-indigo-500/20"
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-zinc-500/10 to-zinc-600/5 group-hover:from-indigo-500/15 group-hover:to-violet-500/10 transition-all duration-300">
-                      <ArrowRightLeft className="h-4 w-4 text-zinc-500 group-hover:text-indigo-500 transition-colors duration-300" />
+              return (
+                <Link
+                  key={m.id}
+                  href={`/migrations/${m.id}`}
+                  className="group flex items-center gap-4 rounded-lg border border-transparent bg-card p-3.5 transition-all duration-150 hover:border-border hover:shadow-card"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary transition-colors duration-150 group-hover:bg-accent">
+                    <ArrowRightLeft className="h-4 w-4 text-muted-foreground transition-colors duration-150 group-hover:text-accent-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-[14px] text-foreground truncate capitalize">
+                        {m.connectorId}
+                      </p>
+                      <ArrowRight className="h-3 w-3 text-muted-foreground/30 shrink-0" />
+                      <p className="text-muted-foreground truncate text-[13px]">
+                        {m.ghlLocationName}
+                      </p>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-foreground truncate capitalize">
-                          {m.connectorId}
-                        </p>
-                        <ArrowRight className="h-3 w-3 text-muted-foreground/30 shrink-0" />
-                        <p className="text-muted-foreground truncate text-sm">
-                          {m.ghlLocationName}
-                        </p>
-                      </div>
-                      <div className="mt-1.5 flex items-center gap-3">
-                        {m.totalContacts > 0 && (
-                          <div className="flex items-center gap-1.5">
-                            <div className="h-1.5 w-20 rounded-full bg-muted overflow-hidden">
-                              <div
-                                className="h-full rounded-full transition-all duration-500"
-                                style={{
-                                  width: `${progress}%`,
-                                  background: progress === 100
-                                    ? "linear-gradient(90deg, #059669, #10b981)"
-                                    : "linear-gradient(90deg, #4f46e5, #6366f1)",
-                                }}
-                              />
-                            </div>
-                            <span className="text-xs font-medium text-muted-foreground">{progress}%</span>
+                    <div className="mt-1.5 flex items-center gap-3">
+                      {m.totalContacts > 0 && (
+                        <div className="flex items-center gap-2">
+                          <div className="h-1 w-16 rounded-full bg-secondary overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{
+                                width: `${progress}%`,
+                                background:
+                                  progress === 100
+                                    ? "var(--success)"
+                                    : "var(--ring)",
+                              }}
+                            />
                           </div>
-                        )}
-                        <span className="text-xs text-muted-foreground/40">
-                          {m.createdAt.toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </span>
-                      </div>
+                          <span className="text-[12px] font-medium text-muted-foreground tabular-nums">
+                            {progress}%
+                          </span>
+                        </div>
+                      )}
+                      <span className="text-[12px] text-muted-foreground/50">
+                        {m.createdAt.toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
                     </div>
-                    <StatusPill status={m.status} />
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  </div>
+                  <StatusPill status={m.status} />
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground/0 group-hover:text-muted-foreground/40 transition-all duration-150 shrink-0" />
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 function EmptyState() {
   return (
-    <div className="py-20 text-center">
-      <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary shadow-lg shadow-indigo-500/25">
-        <ArrowRightLeft className="h-7 w-7 text-white" />
-      </div>
-      <h3 className="text-lg font-bold text-foreground tracking-tight">
-        No migrations yet
-      </h3>
-      <p className="mx-auto mt-2 max-w-[340px] text-sm text-muted-foreground leading-relaxed">
-        Start by creating a migration. You&apos;ll connect a source platform,
-        map fields, and import everything into GoHighLevel.
-      </p>
-      <div className="mt-8 flex flex-col items-center gap-3">
-        <Link href="/migrations/new">
-          <Button size="lg" className="gap-2 gradient-primary border-0 shadow-lg shadow-indigo-500/20">
-            <Plus className="h-4 w-4" />
-            Create First Migration
-          </Button>
-        </Link>
-        <Link href="/settings" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-accent-foreground transition-colors">
-          <Settings className="h-3.5 w-3.5" />
-          Set up GHL connection first
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({
-  title,
-  value,
-  icon: Icon,
-  gradientClass,
-  iconClass,
-  pulse,
-}: {
-  title: string;
-  value: number;
-  icon: React.ComponentType<{ className?: string }>;
-  gradientClass: string;
-  iconClass: string;
-  pulse?: boolean;
-}) {
-  return (
-    <Card className="group hover:shadow-card-hover transition-all duration-300">
-      <CardContent className="flex items-center gap-4 p-5">
-        <div className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${gradientClass}`}>
-          <Icon className={`h-5 w-5 ${iconClass}`} />
-          {pulse && (
-            <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-indigo-500" />
-            </span>
-          )}
+    <Card>
+      <CardContent className="py-16 text-center">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-secondary">
+          <ArrowRightLeft className="h-5 w-5 text-muted-foreground" />
         </div>
-        <div>
-          <p className="text-3xl font-bold text-foreground tracking-tight">{value}</p>
-          <p className="text-sm text-muted-foreground">{title}</p>
+        <h3 className="text-[15px] font-semibold text-foreground">
+          No migrations yet
+        </h3>
+        <p className="mx-auto mt-1.5 max-w-[300px] text-[13px] text-muted-foreground leading-relaxed">
+          Connect a source platform, map your fields, and import everything
+          into GoHighLevel.
+        </p>
+        <div className="mt-6 flex flex-col items-center gap-2.5">
+          <Link href="/migrations/new">
+            <Button size="lg" variant="accent" className="gap-2">
+              <Plus className="h-4 w-4" />
+              Create First Migration
+            </Button>
+          </Link>
+          <Link
+            href="/settings"
+            className="flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Settings className="h-3.5 w-3.5" />
+            Set up GHL connection first
+          </Link>
         </div>
       </CardContent>
     </Card>
   );
 }
 
+function StatCard({
+  title,
+  value,
+  accent,
+  live,
+  variant,
+}: {
+  title: string;
+  value: number;
+  accent?: boolean;
+  live?: boolean;
+  variant?: "success" | "destructive";
+}) {
+  const valueColor =
+    variant === "success" && value > 0
+      ? "text-success"
+      : variant === "destructive" && value > 0
+        ? "text-destructive"
+        : accent
+          ? "text-accent-foreground"
+          : "text-foreground";
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4 shadow-xs">
+      <div className="flex items-center justify-between">
+        <span className="text-[13px] text-muted-foreground">{title}</span>
+        {live && (
+          <span className="flex items-center gap-1.5 text-[11px] font-medium text-accent-foreground">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-foreground opacity-50" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent-foreground" />
+            </span>
+            Live
+          </span>
+        )}
+      </div>
+      <p className={`mt-1 text-2xl font-bold tracking-tight tabular-nums ${valueColor}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
 function StatusPill({ status }: { status: string }) {
   const config: Record<string, { label: string; className: string }> = {
-    PENDING: { label: "Pending", className: "bg-muted text-muted-foreground" },
-    RUNNING: { label: "Running", className: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" },
-    COMPLETED: { label: "Done", className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
-    COMPLETED_WITH_ERRORS: { label: "Partial", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
-    FAILED: { label: "Failed", className: "bg-red-500/10 text-red-600 dark:text-red-400" },
-    CANCELLED: { label: "Cancelled", className: "bg-muted text-muted-foreground" },
-    PAUSED: { label: "Paused", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+    PENDING: {
+      label: "Pending",
+      className: "bg-secondary text-muted-foreground",
+    },
+    RUNNING: {
+      label: "Running",
+      className: "bg-accent text-accent-foreground",
+    },
+    COMPLETED: {
+      label: "Done",
+      className: "bg-success/10 text-success",
+    },
+    COMPLETED_WITH_ERRORS: {
+      label: "Partial",
+      className: "bg-warning/10 text-warning",
+    },
+    FAILED: {
+      label: "Failed",
+      className: "bg-destructive/8 text-destructive",
+    },
+    CANCELLED: {
+      label: "Cancelled",
+      className: "bg-secondary text-muted-foreground",
+    },
+    PAUSED: {
+      label: "Review",
+      className: "bg-warning/10 text-warning",
+    },
   };
-  const c = config[status] || { label: status, className: "bg-muted text-muted-foreground" };
+  const c = config[status] || {
+    label: status,
+    className: "bg-secondary text-muted-foreground",
+  };
   return (
-    <span className={`shrink-0 inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-semibold ${c.className}`}>
+    <span
+      className={`shrink-0 inline-flex items-center rounded-md px-2 py-0.5 text-[12px] font-semibold ${c.className}`}
+    >
       {status === "RUNNING" && (
-        <span className="relative mr-1.5 flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500" />
+        <span className="relative mr-1.5 flex h-1.5 w-1.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-50" />
+          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-current" />
         </span>
       )}
       {c.label}

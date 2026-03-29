@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import {
   MessageSquare,
   Users,
@@ -29,10 +28,10 @@ interface StepSelectSourceProps {
 }
 
 const capabilityConfig = [
-  { key: "contacts" as const, label: "Contacts", icon: Users, color: "text-zinc-600" },
-  { key: "conversations" as const, label: "Conversations", icon: MessageSquare, color: "text-zinc-500" },
-  { key: "opportunities" as const, label: "Opportunities", icon: Target, color: "text-amber-500" },
-  { key: "appointments" as const, label: "Appointments", icon: Calendar, color: "text-emerald-500" },
+  { key: "contacts" as const, label: "Contacts", icon: Users },
+  { key: "conversations" as const, label: "Conversations", icon: MessageSquare },
+  { key: "opportunities" as const, label: "Opportunities", icon: Target },
+  { key: "appointments" as const, label: "Appointments", icon: Calendar },
 ];
 
 export function StepSelectSource({ onSelect }: StepSelectSourceProps) {
@@ -51,9 +50,9 @@ export function StepSelectSource({ onSelect }: StepSelectSourceProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-2.5 py-20 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-        <span className="text-sm">Loading platforms...</span>
+      <div className="flex items-center justify-center gap-2 py-20 text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin text-accent-foreground" />
+        <span className="text-[13px]">Loading platforms...</span>
       </div>
     );
   }
@@ -61,52 +60,51 @@ export function StepSelectSource({ onSelect }: StepSelectSourceProps) {
   if (connectors.length === 0) {
     return (
       <div className="py-20 text-center text-muted-foreground">
-        <p className="font-semibold">No connectors available</p>
-        <p className="mt-1 text-sm">Contact support if this seems wrong.</p>
+        <p className="font-semibold text-foreground">No connectors available</p>
+        <p className="mt-1 text-[13px]">Contact support if this seems wrong.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
+    <div className="space-y-3">
+      <p className="text-[13px] text-muted-foreground">
         Pick the platform your client currently uses. We&apos;ll pull their data and import it into GHL.
       </p>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-2 sm:grid-cols-2 stagger-children">
         {connectors.map((connector) => {
           const caps = capabilityConfig.filter((c) => connector.capabilities[c.key]);
           return (
             <button
               key={connector.id}
               onClick={() => onSelect(connector.id, connector.name)}
-              className="group flex flex-col rounded-2xl border border-border bg-card p-5 text-left shadow-card transition-all duration-200 hover:shadow-card-hover hover:border-indigo-500/25"
+              className="group flex flex-col rounded-lg border border-border bg-card p-4 text-left shadow-xs transition-all duration-150 hover:shadow-card hover:border-accent-foreground/20"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-zinc-500/10 to-zinc-600/5 text-base font-bold text-zinc-600 group-hover:gradient-primary group-hover:text-white transition-all duration-300">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-[14px] font-bold text-secondary-foreground transition-colors duration-150 group-hover:bg-accent group-hover:text-accent-foreground">
                     {connector.name[0]}
                   </div>
                   <div>
-                    <p className="font-semibold text-foreground tracking-tight">
+                    <p className="text-[14px] font-medium text-foreground">
                       {connector.name}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                    <p className="text-[12px] text-muted-foreground mt-0.5 line-clamp-1">
                       {connector.description}
                     </p>
                   </div>
                 </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground/20 transition-all duration-300 group-hover:text-indigo-500 group-hover:translate-x-0.5" />
+                <ArrowRight className="h-4 w-4 text-muted-foreground/0 transition-all duration-150 group-hover:text-accent-foreground group-hover:translate-x-0.5 shrink-0 mt-0.5" />
               </div>
-              <div className="mt-3 flex flex-wrap gap-1.5">
+              <div className="mt-2.5 flex flex-wrap gap-1">
                 {caps.map((cap) => (
-                  <Badge
+                  <span
                     key={cap.key}
-                    variant="secondary"
-                    className="text-[11px] font-medium gap-1 px-2 py-0.5 rounded-lg"
+                    className="inline-flex items-center gap-1 rounded-md bg-secondary px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"
                   >
-                    <cap.icon className={`h-3 w-3 ${cap.color}`} />
+                    <cap.icon className="h-2.5 w-2.5" />
                     {cap.label}
-                  </Badge>
+                  </span>
                 ))}
               </div>
             </button>

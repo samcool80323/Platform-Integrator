@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ArrowRightLeft, ArrowRight, Loader2, Shield, Zap, Database } from "lucide-react";
+import { ArrowRightLeft, ArrowRight, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -56,108 +56,146 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center gradient-hero overflow-hidden">
-      {/* Animated gradient mesh */}
-      <div className="gradient-mesh" />
+    <div className="relative flex min-h-screen">
+      {/* Left: Brand panel — always dark regardless of theme */}
+      <div className="hidden lg:flex lg:w-[480px] xl:w-[560px] flex-col justify-between bg-[#111113] p-10">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.08]">
+            <ArrowRightLeft className="h-4 w-4 text-white/80" />
+          </div>
+          <span className="text-[15px] font-semibold text-white/85 tracking-tight">
+            Platform Integrator
+          </span>
+        </div>
 
-      {/* Grid pattern overlay */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.015]"
-        style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                            linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-          backgroundSize: "60px 60px",
-        }}
-      />
+        <div className="space-y-5">
+          <h1 className="text-[40px] font-bold text-white leading-[1.1] tracking-tight">
+            Migrate CRM data<br />
+            to GoHighLevel<br />
+            <span className="text-white/30">in minutes.</span>
+          </h1>
+          <p className="text-[15px] text-white/30 leading-relaxed max-w-[340px]">
+            Connect any platform, auto-map your fields, and import contacts, conversations, and appointments.
+          </p>
+        </div>
 
-      <div className="absolute right-5 top-5 z-10">
-        <ThemeToggle />
+        <div className="flex items-center gap-6 text-[13px] text-white/20">
+          <span>10+ platforms</span>
+          <span className="w-px h-3 bg-white/[0.08]" />
+          <span>Auto field mapping</span>
+          <span className="w-px h-3 bg-white/[0.08]" />
+          <span>Encrypted</span>
+        </div>
       </div>
 
-      <div className="relative z-10 w-full max-w-[420px] px-5">
-        {/* Logo */}
-        <div className="mb-10 text-center">
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl gradient-primary shadow-lg shadow-indigo-500/25">
-            <ArrowRightLeft className="h-6 w-6 text-white" />
+      {/* Right: Form */}
+      <div className="flex flex-1 flex-col bg-background">
+        <div className="flex items-center justify-between p-5">
+          <div className="flex items-center gap-2 lg:hidden">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg gradient-primary">
+              <ArrowRightLeft className="h-3.5 w-3.5 text-white" />
+            </div>
+            <span className="text-sm font-semibold tracking-tight">Platform Integrator</span>
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            Platform Integrator
-          </h1>
-          <p className="mt-1.5 text-sm text-white/30">
-            CRM migration for GoHighLevel
-          </p>
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
         </div>
 
-        {/* Form */}
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-8 glass shadow-2xl shadow-black/20">
-          <div className="mb-6">
-            <h2 className="text-lg font-bold text-white tracking-tight">
-              {isRegister ? "Create account" : "Welcome back"}
-            </h2>
-            <p className="mt-1 text-sm text-white/35">
-              {isRegister ? "Get started in under a minute" : "Sign in to continue"}
+        <div className="flex flex-1 items-center justify-center px-6">
+          <div className="w-full max-w-[360px] animate-fade-in">
+            <div className="mb-8">
+              <h2 className="text-[22px] font-bold tracking-tight">
+                {isRegister ? "Create your account" : "Welcome back"}
+              </h2>
+              <p className="mt-1.5 text-[14px] text-muted-foreground">
+                {isRegister
+                  ? "Get started with your first migration"
+                  : "Sign in to continue to your dashboard"}
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {isRegister && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="name" className="text-[13px] font-medium">
+                    Full name
+                  </Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    placeholder="John Smith"
+                    required
+                    autoComplete="name"
+                  />
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-[13px] font-medium">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="you@agency.com"
+                  required
+                  autoComplete="email"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="text-[13px] font-medium">
+                  Password
+                </Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder={isRegister ? "Min. 6 characters" : "Enter password"}
+                  required
+                  minLength={6}
+                  autoComplete={isRegister ? "new-password" : "current-password"}
+                />
+              </div>
+
+              {error && (
+                <div className="rounded-lg bg-destructive/8 border border-destructive/15 px-3 py-2.5 text-[13px] text-destructive font-medium">
+                  {error}
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full h-9 gap-2"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Please wait...
+                  </>
+                ) : (
+                  <>
+                    {isRegister ? "Create Account" : "Sign In"}
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </>
+                )}
+              </Button>
+            </form>
+
+            <p className="mt-6 text-center text-[13px] text-muted-foreground">
+              {isRegister ? "Already have an account?" : "Don\u2019t have an account?"}{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRegister(!isRegister);
+                  setError("");
+                }}
+                className="font-medium text-foreground hover:text-accent-foreground transition-colors"
+              >
+                {isRegister ? "Sign in" : "Create one"}
+              </button>
             </p>
           </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {isRegister && (
-              <div className="space-y-1.5">
-                <Label htmlFor="name" className="text-xs font-medium text-white/50">Name</Label>
-                <Input id="name" name="name" placeholder="John Smith" required
-                  className="bg-white/[0.06] border-white/[0.08] text-white placeholder:text-white/20 focus:border-indigo-500/40 focus:ring-indigo-500/15" />
-              </div>
-            )}
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-xs font-medium text-white/50">Email</Label>
-              <Input id="email" name="email" type="email" placeholder="you@agency.com" required
-                className="bg-white/[0.06] border-white/[0.08] text-white placeholder:text-white/20 focus:border-indigo-500/40 focus:ring-indigo-500/15" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-xs font-medium text-white/50">Password</Label>
-              <Input id="password" name="password" type="password"
-                placeholder={isRegister ? "Min. 6 characters" : "Enter password"} required minLength={6}
-                className="bg-white/[0.06] border-white/[0.08] text-white placeholder:text-white/20 focus:border-indigo-500/40 focus:ring-indigo-500/15" />
-            </div>
-
-            {error && (
-              <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-2.5 text-sm text-red-400">
-                {error}
-              </div>
-            )}
-
-            <Button type="submit"
-              className="w-full h-11 gap-2 gradient-primary border-0 text-white shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:opacity-90 transition-all"
-              disabled={loading}>
-              {loading ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Please wait...</>
-              ) : (
-                <>{isRegister ? "Create Account" : "Sign In"}<ArrowRight className="h-4 w-4" /></>
-              )}
-            </Button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-white/30">
-            {isRegister ? "Have an account?" : "No account?"}{" "}
-            <button type="button"
-              onClick={() => { setIsRegister(!isRegister); setError(""); }}
-              className="font-medium text-indigo-400/80 hover:text-indigo-300 transition-colors">
-              {isRegister ? "Sign in" : "Create one"}
-            </button>
-          </p>
-        </div>
-
-        {/* Feature badges */}
-        <div className="mt-8 flex items-center justify-center gap-4">
-          {[
-            { icon: Database, label: "10+ platforms" },
-            { icon: Shield, label: "Encrypted" },
-            { icon: Zap, label: "Auto mapping" },
-          ].map(({ icon: Icon, label }) => (
-            <div key={label} className="flex items-center gap-1.5 text-[11px] text-white/15">
-              <Icon className="h-3 w-3" />
-              {label}
-            </div>
-          ))}
         </div>
       </div>
     </div>

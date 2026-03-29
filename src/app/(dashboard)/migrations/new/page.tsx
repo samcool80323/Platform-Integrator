@@ -42,7 +42,7 @@ export default function NewMigrationPage() {
   const [state, setState] = useState<Partial<WizardState>>({});
   const [startError, setStartError] = useState<string | null>(null);
 
-  // Restore wizard state after OAuth redirect (page was navigated away and came back)
+  // Restore wizard state after OAuth redirect
   useEffect(() => {
     const oauthDone = searchParams.get("oauth_done");
     const oauthConnector = searchParams.get("oauth_connector");
@@ -67,28 +67,20 @@ export default function NewMigrationPage() {
     setState((prev) => ({ ...prev, ...updates }));
   }
 
-  /**
-   * Go back to a previous step AND clear state for all forward steps,
-   * so stale mappings / selections don't carry over.
-   */
   function goBack(toStep: number) {
     setState((prev) => {
       const cleared = { ...prev };
-      // Clear step 4 data (review uses existing state, nothing extra)
       if (toStep < 3) {
-        // Going back past field mapping — clear mappings, fields, tags
         delete cleared.fields;
         delete cleared.fieldMappings;
         delete cleared.extraTags;
         delete cleared.contactSource;
       }
       if (toStep < 2) {
-        // Going back past GHL selection — clear location
         delete cleared.ghlLocationId;
         delete cleared.ghlLocationName;
       }
       if (toStep < 1) {
-        // Going back past auth — clear credentials
         delete cleared.credentialId;
         delete cleared.credentials;
         delete cleared.credentialLabel;
@@ -127,7 +119,6 @@ export default function NewMigrationPage() {
         return;
       }
       const { migration } = await res.json();
-      // Start with test limit of 10 contacts — user reviews before pushing all
       await fetch(`/api/migrations/${migration.id}/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -140,44 +131,56 @@ export default function NewMigrationPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-foreground tracking-tight">New Migration</h1>
-        <p className="mt-1 text-muted-foreground">
+        <h1 className="text-[22px] text-foreground">New Migration</h1>
+        <p className="mt-1 text-[14px] text-muted-foreground">
           Import data from your client&apos;s platform into GoHighLevel.
         </p>
       </div>
 
       {/* Stepper */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center">
         {STEPS.map((s, i) => {
           const done = i < step;
           const active = i === step;
           return (
-            <div key={s.label} className="flex flex-1 items-center gap-1">
-              <div className="flex items-center gap-2.5">
+            <div key={s.label} className="flex flex-1 items-center">
+              <div className="flex items-center gap-2">
                 <div
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all duration-300 ${
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[12px] font-bold transition-all duration-200 ${
                     done
-                      ? "gradient-success shadow-md shadow-emerald-500/20"
+                      ? "bg-success text-white"
                       : active
-                        ? "gradient-primary shadow-md shadow-indigo-500/20"
-                        : "bg-muted text-muted-foreground"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground"
                   }`}
                 >
-                  {done ? <Check className="h-3.5 w-3.5 text-white" /> : <span className={done || active ? "text-white" : ""}>{i + 1}</span>}
+                  {done ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : (
+                    <span>{i + 1}</span>
+                  )}
                 </div>
                 <span
-                  className={`hidden md:block text-xs font-medium whitespace-nowrap transition-colors ${
-                    active ? "text-foreground" : done ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground/50"
+                  className={`hidden md:block text-[12px] font-medium whitespace-nowrap transition-colors ${
+                    active
+                      ? "text-foreground"
+                      : done
+                        ? "text-success"
+                        : "text-muted-foreground/40"
                   }`}
                 >
                   {s.label}
                 </span>
               </div>
               {i < STEPS.length - 1 && (
-                <div className="flex-1 mx-1">
-                  <div className={`h-px w-full transition-all duration-500 ${done ? "bg-emerald-500" : "bg-border"}`} />
+                <div className="flex-1 mx-2">
+                  <div
+                    className={`h-px w-full transition-colors duration-300 ${
+                      done ? "bg-success" : "bg-border"
+                    }`}
+                  />
                 </div>
               )}
             </div>
@@ -185,10 +188,10 @@ export default function NewMigrationPage() {
         })}
       </div>
 
-      {/* Step hint */}
-      <div className="rounded-xl bg-accent/50 border border-indigo-500/10 px-4 py-3">
-        <p className="text-sm">
-          <span className="font-semibold text-accent-foreground">Step {step + 1}:</span>{" "}
+      {/* Step context */}
+      <div className="rounded-lg bg-secondary px-3.5 py-2.5">
+        <p className="text-[13px]">
+          <span className="font-medium text-foreground">Step {step + 1}:</span>{" "}
           <span className="text-muted-foreground">{STEPS[step].description}</span>
         </p>
       </div>
@@ -241,7 +244,7 @@ export default function NewMigrationPage() {
         {step === 4 && (
           <>
             {startError && (
-              <div className="mb-4 flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-500">
+              <div className="mb-4 flex items-center gap-2 rounded-lg border border-destructive/15 bg-destructive/8 p-3.5 text-[13px] text-destructive font-medium">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 {startError}
               </div>

@@ -11,7 +11,7 @@ import {
   Settings,
   LogOut,
   Plus,
-  Sparkles,
+  ChevronsRight,
 } from "lucide-react";
 
 const navItems = [
@@ -27,47 +27,24 @@ interface DashboardShellProps {
 
 export function DashboardShell({ children, user }: DashboardShellProps) {
   const pathname = usePathname();
+  const initials = (user.name?.[0] || user.email?.[0] || "U").toUpperCase();
 
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
-      <aside
-        className="flex w-[260px] flex-col glass"
-        style={{
-          background: "var(--sidebar-bg)",
-          borderRight: "1px solid var(--sidebar-border)",
-        }}
-      >
+      <aside className="flex w-[240px] shrink-0 flex-col border-r border-sidebar-border bg-[var(--sidebar-bg)]">
         {/* Logo */}
-        <div
-          className="flex h-[68px] items-center gap-3 px-5"
-          style={{ borderBottom: "1px solid var(--sidebar-border)" }}
-        >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-primary shadow-lg shadow-indigo-500/20">
-            <ArrowRightLeft className="h-4 w-4 text-white" />
+        <div className="flex h-14 items-center gap-2.5 px-5 border-b border-[var(--sidebar-border)]">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg gradient-primary">
+            <ArrowRightLeft className="h-3.5 w-3.5 text-white" />
           </div>
-          <div>
-            <p className="text-[13px] font-bold text-white/90 leading-none tracking-tight">
-              Platform Integrator
-            </p>
-            <p
-              className="text-[11px] mt-1 flex items-center gap-1"
-              style={{ color: "var(--sidebar-heading)" }}
-            >
-              <Sparkles className="h-2.5 w-2.5" />
-              CRM Migration
-            </p>
-          </div>
+          <span className="text-[13px] font-semibold text-foreground tracking-tight">
+            Platform Integrator
+          </span>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 pt-6 space-y-1">
-          <p
-            className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.12em]"
-            style={{ color: "var(--sidebar-heading)" }}
-          >
-            Menu
-          </p>
+        <nav className="flex-1 px-3 pt-4 space-y-0.5">
           {navItems.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -77,71 +54,50 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200",
-                  isActive && "nav-active-indicator",
+                  "group flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] font-medium transition-colors duration-150",
+                  isActive
+                    ? "nav-active-indicator bg-[var(--sidebar-active)] text-[var(--sidebar-active-foreground)]"
+                    : "text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-hover)] hover:text-foreground",
                 )}
-                style={{
-                  color: isActive
-                    ? "var(--sidebar-active-foreground)"
-                    : "var(--sidebar-foreground)",
-                  background: isActive ? "var(--sidebar-active)" : undefined,
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive)
-                    e.currentTarget.style.background = "var(--sidebar-hover)";
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) e.currentTarget.style.background = "";
-                }}
               >
                 <item.icon
                   className={cn(
-                    "h-4 w-4 transition-colors",
-                    isActive ? "text-indigo-400" : "opacity-50",
+                    "h-4 w-4 shrink-0 transition-colors duration-150",
+                    isActive
+                      ? "text-[var(--sidebar-active-foreground)]"
+                      : "text-[var(--sidebar-foreground)] group-hover:text-foreground",
                   )}
                 />
                 {item.label}
+                {item.href === "/migrations/new" && !isActive && (
+                  <ChevronsRight className="ml-auto h-3 w-3 opacity-0 group-hover:opacity-40 transition-opacity" />
+                )}
               </Link>
             );
           })}
         </nav>
 
         {/* Bottom */}
-        <div
-          className="p-3 space-y-1"
-          style={{ borderTop: "1px solid var(--sidebar-border)" }}
-        >
-          <div className="flex items-center justify-between px-2 py-1">
+        <div className="p-3 space-y-1 border-t border-[var(--sidebar-border)]">
+          <div className="flex items-center justify-between px-2">
             <ThemeToggle />
           </div>
-          <div className="flex items-center gap-2.5 rounded-xl px-3 py-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg gradient-primary text-[11px] font-bold text-white shadow-sm">
-              {(user.name?.[0] || user.email?.[0] || "U").toUpperCase()}
+          <div className="flex items-center gap-2.5 rounded-lg px-2.5 py-2">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-secondary text-[11px] font-bold text-secondary-foreground">
+              {initials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="truncate text-[13px] font-semibold text-white/85 leading-none">
+              <p className="truncate text-[13px] font-medium text-foreground leading-none">
                 {user.name || "User"}
               </p>
-              <p
-                className="truncate text-[11px] mt-1"
-                style={{ color: "var(--sidebar-heading)" }}
-              >
+              <p className="truncate text-[11px] mt-0.5 text-[var(--sidebar-foreground)]">
                 {user.email}
               </p>
             </div>
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200"
-            style={{ color: "var(--sidebar-foreground)" }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "#f87171";
-              e.currentTarget.style.background = "rgba(239, 68, 68, 0.08)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "var(--sidebar-foreground)";
-              e.currentTarget.style.background = "";
-            }}
+            className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] font-medium text-[var(--sidebar-foreground)] hover:text-destructive hover:bg-destructive/8 transition-colors duration-150"
           >
             <LogOut className="h-4 w-4" />
             Sign out
@@ -151,7 +107,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
 
       {/* Main */}
       <main className="flex-1 overflow-auto bg-background">
-        <div className="mx-auto max-w-5xl px-8 py-8">{children}</div>
+        <div className="mx-auto max-w-[960px] px-8 py-8">{children}</div>
       </main>
     </div>
   );

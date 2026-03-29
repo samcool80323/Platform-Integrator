@@ -102,9 +102,9 @@ export default function MigrationDetailPage() {
 
   if (loading || !migration) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 py-24 text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
-        <span className="text-sm">Loading migration...</span>
+      <div className="flex flex-col items-center justify-center gap-2 py-24 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin text-accent-foreground" />
+        <span className="text-[13px]">Loading migration...</span>
       </div>
     );
   }
@@ -118,34 +118,34 @@ export default function MigrationDetailPage() {
   const isFailed = migration.status === "FAILED" || migration.status === "COMPLETED_WITH_ERRORS";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
+      {/* Breadcrumb + Header */}
       <div>
         <Link href="/dashboard"
-          className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          className="mb-3 inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-3.5 w-3.5" /> Dashboard
         </Link>
 
-        <div className="flex items-start justify-between mt-2">
+        <div className="flex items-start justify-between mt-1">
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-foreground tracking-tight">Migration</h1>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-[22px] text-foreground">Migration</h1>
               <StatusPill status={migration.status} />
             </div>
-            <p className="mt-1.5 text-muted-foreground capitalize">
-              {migration.connectorId} → {migration.ghlLocationName}
+            <p className="mt-1 text-[14px] text-muted-foreground capitalize">
+              {migration.connectorId} <span className="text-muted-foreground/30 mx-1">&rarr;</span> {migration.ghlLocationName}
             </p>
             {migration.startedAt && (
-              <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <p className="mt-1 flex items-center gap-1.5 text-[12px] text-muted-foreground/60 tabular-nums">
                 <Clock className="h-3 w-3" />
                 Started {new Date(migration.startedAt).toLocaleString()}
-                {migration.completedAt && <> · Done {new Date(migration.completedAt).toLocaleString()}</>}
+                {migration.completedAt && <> &middot; Done {new Date(migration.completedAt).toLocaleString()}</>}
               </p>
             )}
           </div>
           <div className="flex items-center gap-2">
             {isPaused && (
-              <Button size="sm" onClick={handlePushAll} disabled={pushing}
-                className="gap-2 gradient-primary border-0 shadow-md shadow-indigo-500/20">
+              <Button size="sm" onClick={handlePushAll} disabled={pushing} variant="accent" className="gap-2">
                 {pushing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
                 {pushing ? "Starting..." : "Push All Contacts"}
               </Button>
@@ -161,44 +161,40 @@ export default function MigrationDetailPage() {
 
       {/* Running banner */}
       {isRunning && (
-        <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4 flex items-center gap-3 shadow-glow-sm">
-          <div className="relative flex h-5 w-5 items-center justify-center">
-            <span className="animate-ping absolute h-4 w-4 rounded-full bg-indigo-400 opacity-30" />
-            <Loader2 className="h-4 w-4 animate-spin text-indigo-500 relative" />
-          </div>
-          <div className="text-sm">
-            <span className="font-semibold text-foreground">Migration is running in the background.</span>{" "}
-            <span className="text-muted-foreground">You can navigate away — it will keep running.</span>
+        <div className="rounded-lg border border-accent-foreground/15 bg-accent p-3.5 flex items-center gap-3">
+          <Loader2 className="h-4 w-4 animate-spin text-accent-foreground shrink-0" />
+          <div className="text-[13px]">
+            <span className="font-medium text-foreground">Migration is running.</span>{" "}
+            <span className="text-muted-foreground">You can navigate away &mdash; it will keep going.</span>
           </div>
         </div>
       )}
 
       {/* Paused review banner */}
       {isPaused && (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/8 p-5 space-y-3">
-          <div className="flex items-center gap-2 text-sm font-semibold text-amber-600 dark:text-amber-400">
+        <div className="rounded-lg border border-warning/20 bg-warning-light p-4 space-y-3">
+          <div className="flex items-center gap-2 text-[13px] font-semibold text-warning">
             <Pause className="h-4 w-4" />
-            Test import complete — review before continuing
+            Test import complete &mdash; review before continuing
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[13px] text-muted-foreground leading-relaxed">
             {migration.processedContacts} test contacts have been imported into your GHL sub-account.
-            Check them in GoHighLevel to make sure the data looks correct — names, phone numbers, tags, custom fields, etc.
+            Check them in GoHighLevel to make sure names, phone numbers, tags, and custom fields look correct.
           </p>
-          <div className="flex gap-3">
-            <Button size="sm" onClick={handlePushAll} disabled={pushing}
-              className="gap-2 gradient-primary border-0 shadow-md shadow-indigo-500/20">
+          <div className="flex gap-2">
+            <Button size="sm" onClick={handlePushAll} disabled={pushing} variant="accent" className="gap-2">
               {pushing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-              {pushing ? "Starting full import..." : "Looks good — push all contacts"}
+              {pushing ? "Starting..." : "Looks good \u2014 push all contacts"}
             </Button>
             <Button variant="outline" size="sm" onClick={() => window.history.back()} className="gap-2">
-              Go back and adjust mapping
+              Go back and adjust
             </Button>
           </div>
         </div>
       )}
 
       {/* Progress */}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         <ProgressCard title="Contacts" icon={Users} total={migration.totalContacts}
           processed={migration.processedContacts} failed={migration.failedContacts}
           progress={contactProgress} isRunning={isRunning} />
@@ -208,51 +204,50 @@ export default function MigrationDetailPage() {
       </div>
 
       {/* Logs */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Terminal className="h-4 w-4 text-muted-foreground" /> Log
-            </CardTitle>
-            <CardDescription>
-              {isRunning ? "Live updates" : `${logs.length} entries`}
-            </CardDescription>
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Terminal className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-[15px] font-semibold text-foreground">Log</h2>
+            <span className="text-[12px] text-muted-foreground">
+              {isRunning ? "Live" : `${logs.length} entries`}
+            </span>
           </div>
-          <Button variant="ghost" size="sm" onClick={loadLogs} className="gap-1.5">
-            <RefreshCw className="h-3.5 w-3.5" /> Refresh
+          <Button variant="ghost" size="xs" onClick={loadLogs} className="gap-1.5">
+            <RefreshCw className="h-3 w-3" /> Refresh
           </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="max-h-[420px] space-y-0.5 overflow-y-auto rounded-xl p-4 font-mono text-xs leading-relaxed border border-white/[0.03]"
-            style={{ background: "#0a0a10" }}>
-            {logs.length === 0 ? (
-              <p className="text-white/10 py-6 text-center">
-                {isRunning ? "Waiting for log entries..." : "No logs for this migration."}
-              </p>
-            ) : (
-              logs.map((log) => (
-                <div key={log.id} className={`py-0.5 ${
-                  log.level === "ERROR" ? "text-red-400"
-                    : log.level === "WARN" ? "text-amber-400"
-                      : "text-zinc-400"
+        </div>
+
+        <div
+          className="max-h-[400px] overflow-y-auto rounded-lg border border-border p-4 font-mono text-[12px] leading-[1.7] bg-card"
+        >
+          {logs.length === 0 ? (
+            <p className="text-muted-foreground/40 py-8 text-center text-[13px] font-sans">
+              {isRunning ? "Waiting for log entries..." : "No logs for this migration."}
+            </p>
+          ) : (
+            logs.map((log) => (
+              <div key={log.id} className={`log-line py-px ${
+                log.level === "ERROR" ? "text-destructive"
+                  : log.level === "WARN" ? "text-warning"
+                    : "text-muted-foreground"
+              }`}>
+                <span className="text-muted-foreground/25 select-none mr-2">
+                  {new Date(log.timestamp).toLocaleTimeString()}
+                </span>
+                <span className={`mr-2 font-semibold ${
+                  log.level === "ERROR" ? "text-destructive"
+                    : log.level === "WARN" ? "text-warning"
+                      : "text-muted-foreground/30"
                 }`}>
-                  <span className="text-white/[0.06] select-none">
-                    {new Date(log.timestamp).toLocaleTimeString()}{" "}
-                  </span>
-                  <span className={`mr-2 font-bold ${
-                    log.level === "ERROR" ? "text-red-500"
-                      : log.level === "WARN" ? "text-amber-500"
-                        : "text-zinc-500/40"
-                  }`}>
-                    [{log.level.padEnd(5)}]
-                  </span>
-                  {log.message}
-                </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                  [{log.level.padEnd(5)}]
+                </span>
+                <span className="text-foreground/80">{log.message}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -261,60 +256,62 @@ function ProgressCard({ title, icon: Icon, total, processed, failed, progress, i
   title: string; icon: React.ComponentType<{ className?: string }>; total: number;
   processed: number; failed: number; progress: number; isRunning: boolean;
 }) {
-  const barGradient = failed > 0 && progress === 100
-    ? "linear-gradient(90deg, #d97706, #f59e0b)"
-    : progress === 100
-      ? "linear-gradient(90deg, #059669, #10b981)"
-      : "linear-gradient(90deg, #4f46e5, #6366f1)";
+  const barColor =
+    failed > 0 && progress === 100
+      ? "var(--warning)"
+      : progress === 100
+        ? "var(--success)"
+        : "var(--ring)";
+
   return (
-    <Card className="group hover:shadow-card-hover transition-all duration-300">
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-zinc-500/10 to-zinc-600/5">
-              <Icon className="h-4 w-4 text-zinc-500" />
-            </div>
-            <span className="text-sm font-semibold text-foreground">{title}</span>
-          </div>
-          <span className="text-2xl font-bold text-foreground tracking-tight">{progress}%</span>
+    <div className="rounded-lg border border-border bg-card p-4 shadow-xs">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Icon className="h-4 w-4 text-muted-foreground" />
+          <span className="text-[13px] font-medium text-foreground">{title}</span>
         </div>
-        <div className="h-2.5 rounded-full bg-muted overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-700 ease-out"
-            style={{ width: `${progress}%`, background: barGradient }}
-          />
-        </div>
-        <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <CheckCircle2 className="h-3 w-3 text-emerald-500" /> {processed} done
+        <span className="text-xl font-bold text-foreground tracking-tight tabular-nums">{progress}%</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ease-out ${isRunning ? "progress-active" : ""}`}
+          style={{ width: `${progress}%`, background: barColor }}
+        />
+      </div>
+      <div className="mt-2.5 flex items-center gap-3 text-[12px] text-muted-foreground tabular-nums">
+        <span className="flex items-center gap-1">
+          <CheckCircle2 className="h-3 w-3 text-success" /> {processed}
+        </span>
+        <span>of {total}</span>
+        {failed > 0 && (
+          <span className="flex items-center gap-1 text-destructive">
+            <XCircle className="h-3 w-3" /> {failed}
           </span>
-          <span>of {total}</span>
-          {failed > 0 && <span className="flex items-center gap-1 text-red-500"><XCircle className="h-3 w-3" /> {failed} failed</span>}
-          {isRunning && (
-            <span className="flex items-center gap-1 text-indigo-500 ml-auto">
-              <Loader2 className="h-3 w-3 animate-spin" /> Running
-            </span>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+        )}
+        {isRunning && (
+          <span className="flex items-center gap-1 text-accent-foreground ml-auto">
+            <Loader2 className="h-3 w-3 animate-spin" /> Running
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
 
 function StatusPill({ status }: { status: string }) {
   const config: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; className: string }> = {
-    PENDING: { label: "Pending", icon: Clock, className: "bg-muted text-muted-foreground" },
-    RUNNING: { label: "Running", icon: Loader2, className: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" },
-    COMPLETED: { label: "Done", icon: CheckCircle2, className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
-    COMPLETED_WITH_ERRORS: { label: "Partial", icon: AlertTriangle, className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
-    FAILED: { label: "Failed", icon: XCircle, className: "bg-red-500/10 text-red-600 dark:text-red-400" },
-    PAUSED: { label: "Review", icon: Pause, className: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
-    CANCELLED: { label: "Cancelled", icon: XCircle, className: "bg-muted text-muted-foreground" },
+    PENDING: { label: "Pending", icon: Clock, className: "bg-secondary text-muted-foreground" },
+    RUNNING: { label: "Running", icon: Loader2, className: "bg-accent text-accent-foreground" },
+    COMPLETED: { label: "Done", icon: CheckCircle2, className: "bg-success/10 text-success" },
+    COMPLETED_WITH_ERRORS: { label: "Partial", icon: AlertTriangle, className: "bg-warning/10 text-warning" },
+    FAILED: { label: "Failed", icon: XCircle, className: "bg-destructive/8 text-destructive" },
+    PAUSED: { label: "Review", icon: Pause, className: "bg-warning/10 text-warning" },
+    CANCELLED: { label: "Cancelled", icon: XCircle, className: "bg-secondary text-muted-foreground" },
   };
-  const c = config[status] || { label: status, icon: Clock, className: "bg-muted text-muted-foreground" };
+  const c = config[status] || { label: status, icon: Clock, className: "bg-secondary text-muted-foreground" };
   const IconComp = c.icon;
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold ${c.className}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[12px] font-semibold ${c.className}`}>
       <IconComp className={`h-3 w-3 ${status === "RUNNING" ? "animate-spin" : ""}`} />
       {c.label}
     </span>

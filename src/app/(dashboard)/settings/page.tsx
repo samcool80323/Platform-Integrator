@@ -5,8 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   CheckCircle2,
   AlertCircle,
@@ -15,7 +13,6 @@ import {
   ChevronUp,
   ExternalLink,
   Loader2,
-  Settings2,
   Link2,
   Copy,
   ShieldCheck,
@@ -33,7 +30,7 @@ const OAUTH2_CONNECTORS = [
     devPortalUrl: "https://app.podium.com",
     devPortalLabel: "Podium Developer Settings",
     helpSteps: [
-      "Log in to Podium → Settings → Integrations → API",
+      "Log in to Podium \u2192 Settings \u2192 Integrations \u2192 API",
       'Click "Create New Application" to register an OAuth app',
       "Set the Redirect URI to the value shown below (copy it exactly)",
       "Copy Client ID and Client Secret and paste them here",
@@ -113,38 +110,36 @@ export default function SettingsPage() {
   const baseUrl = typeof window !== "undefined" ? window.location.origin : process.env.NEXTAUTH_URL || "";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-foreground tracking-tight">Settings</h1>
-        <p className="mt-1 text-muted-foreground">
+        <h1 className="text-[22px] text-foreground">Settings</h1>
+        <p className="mt-1 text-[14px] text-muted-foreground">
           Connect GoHighLevel first, then set up any OAuth platforms you need.
         </p>
       </div>
 
       {/* GHL Connection */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl gradient-primary shadow-lg shadow-indigo-500/20">
-              <Settings2 className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <CardTitle className="text-lg">GoHighLevel</CardTitle>
-              <CardDescription>Connect your GHL Marketplace App for sub-account access.</CardDescription>
-            </div>
+      <section className="rounded-lg border border-border bg-card shadow-xs">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md gradient-primary">
+            <ShieldCheck className="h-4 w-4 text-white" />
           </div>
-        </CardHeader>
-        <CardContent>
+          <div>
+            <h2 className="text-[15px] font-semibold text-foreground">GoHighLevel</h2>
+            <p className="text-[13px] text-muted-foreground">Connect your GHL Marketplace App for sub-account access.</p>
+          </div>
+        </div>
+        <div className="p-5">
           {ghlStatus?.connected ? (
             <div className="space-y-4">
-              <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
-                <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
-                <div>
-                  <p className="font-semibold text-emerald-600 dark:text-emerald-400">Connected</p>
-                  <p className="text-sm text-muted-foreground">
-                    Agency: <strong>{ghlStatus.companyName}</strong>
-                    {ghlStatus.tokenExpiresAt && <> · Expires {new Date(ghlStatus.tokenExpiresAt).toLocaleDateString()}</>}
-                  </p>
+              <div className="flex items-center gap-3 rounded-lg border border-success/20 bg-success/8 p-3.5">
+                <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                <div className="text-[13px]">
+                  <span className="font-medium text-success">Connected</span>
+                  <span className="text-muted-foreground ml-2">
+                    Agency: <strong className="text-foreground">{ghlStatus.companyName}</strong>
+                    {ghlStatus.tokenExpiresAt && <> &middot; Expires {new Date(ghlStatus.tokenExpiresAt).toLocaleDateString()}</>}
+                  </span>
                 </div>
               </div>
               <Button variant="outline" size="sm" onClick={() => setGhlStatus({ connected: false })}>
@@ -153,17 +148,17 @@ export default function SettingsPage() {
             </div>
           ) : (
             <form onSubmit={handleGhlSave} className="space-y-5">
-              <div className="rounded-xl border border-border bg-secondary/50 p-5 space-y-4">
-                <p className="text-sm font-bold text-foreground">How to get your credentials:</p>
-                <ol className="space-y-3 text-sm">
+              <div className="rounded-lg border border-border bg-secondary/50 p-4 space-y-3">
+                <p className="text-[13px] font-semibold text-foreground">Setup instructions</p>
+                <ol className="space-y-2">
                   {[
-                    <>Go to <a href="https://marketplace.gohighlevel.com" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">marketplace.gohighlevel.com</a> and sign in</>,
-                    <>Open <strong>&quot;My Apps&quot;</strong> → create or select an app</>,
-                    <>Go to <strong>&quot;Auth&quot;</strong> tab → copy <strong>Client ID</strong> and <strong>Client Secret</strong></>,
+                    <>Go to <a href="https://marketplace.gohighlevel.com" target="_blank" rel="noopener noreferrer" className="font-medium text-accent-foreground hover:underline">marketplace.gohighlevel.com</a> and sign in</>,
+                    <>Open <strong>&quot;My Apps&quot;</strong> &rarr; create or select an app</>,
+                    <>Go to <strong>&quot;Auth&quot;</strong> tab &rarr; copy <strong>Client ID</strong> and <strong>Client Secret</strong></>,
                     <>Set the redirect URI in GHL to the value below:</>,
                   ].map((content, i) => (
-                    <li key={i} className="flex gap-3">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg gradient-primary text-[11px] font-bold text-white">{i + 1}</span>
+                    <li key={i} className="flex gap-2.5 text-[13px]">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[11px] font-bold bg-primary text-primary-foreground">{i + 1}</span>
                       <span className="text-muted-foreground">{content}</span>
                     </li>
                   ))}
@@ -173,17 +168,17 @@ export default function SettingsPage() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Client ID</Label>
+                  <Label className="text-[12px] font-medium text-muted-foreground">Client ID</Label>
                   <Input value={ghlClientId} onChange={(e) => setGhlClientId(e.target.value)} placeholder="e.g. 69ba5c34xxxx..." required />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Client Secret</Label>
+                  <Label className="text-[12px] font-medium text-muted-foreground">Client Secret</Label>
                   <Input type="password" value={ghlClientSecret} onChange={(e) => setGhlClientSecret(e.target.value)} placeholder="Your app secret" required />
                 </div>
               </div>
 
               {ghlMessage && (
-                <div className="flex items-center gap-2 rounded-xl border border-border bg-secondary/50 p-3 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-secondary p-3 text-[13px] text-muted-foreground">
                   <AlertCircle className="h-4 w-4 shrink-0" /> {ghlMessage}
                 </div>
               )}
@@ -193,17 +188,17 @@ export default function SettingsPage() {
               </Button>
             </form>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       {/* OAuth Platforms */}
-      <div className="space-y-4">
+      <section className="space-y-3">
         <div>
-          <h2 className="text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
-            <Link2 className="h-5 w-5 text-indigo-500" />
+          <h2 className="text-[15px] font-semibold text-foreground flex items-center gap-2">
+            <Link2 className="h-4 w-4 text-accent-foreground" />
             OAuth Platforms
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-[13px] text-muted-foreground">
             For OAuth platforms (like Podium), register a developer app and enter credentials here.
             <strong> API-key platforms</strong> (Dentally, HubSpot, etc.) don&apos;t need setup here.
           </p>
@@ -218,49 +213,49 @@ export default function SettingsPage() {
           const redirectUri = `${baseUrl}/api/connectors/${connector.id}/oauth/callback`;
 
           return (
-            <Card key={connector.id} id={`connector-${connector.id}`}
-              className={`transition-all duration-300 ${isExpanded ? "shadow-glow border-indigo-500/20" : "hover:shadow-card-hover"}`}>
-              <CardHeader className="cursor-pointer select-none"
-                onClick={() => setExpandedConnector(isExpanded ? null : connector.id)}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-500/10 text-sm font-bold text-zinc-600">
-                      {connector.name[0]}
-                    </div>
-                    <div>
-                      <CardTitle className="text-base">{connector.name}</CardTitle>
-                      <CardDescription className="text-xs mt-0.5">OAuth 2.0</CardDescription>
-                    </div>
+            <div key={connector.id} id={`connector-${connector.id}`}
+              className={`rounded-lg border bg-card shadow-xs transition-colors duration-150 ${isExpanded ? "border-accent-foreground/20" : "border-border"}`}>
+              <button
+                className="flex w-full items-center justify-between px-5 py-3.5 text-left"
+                onClick={() => setExpandedConnector(isExpanded ? null : connector.id)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-secondary text-[13px] font-bold text-secondary-foreground">
+                    {connector.name[0]}
                   </div>
-                  <div className="flex items-center gap-2">
-                    {status?.configured ? (
-                      <Badge variant="secondary" className="text-xs text-emerald-600 dark:text-emerald-400 gap-1 rounded-lg">
-                        <CheckCircle2 className="h-3 w-3" /> Ready
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary" className="text-xs text-amber-600 dark:text-amber-400 rounded-lg">
-                        Setup needed
-                      </Badge>
-                    )}
-                    {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                  <div>
+                    <p className="text-[14px] font-medium text-foreground">{connector.name}</p>
+                    <p className="text-[12px] text-muted-foreground">OAuth 2.0</p>
                   </div>
                 </div>
-              </CardHeader>
+                <div className="flex items-center gap-2">
+                  {status?.configured ? (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-success/10 px-2 py-0.5 text-[12px] font-medium text-success">
+                      <CheckCircle2 className="h-3 w-3" /> Ready
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-md bg-warning/10 px-2 py-0.5 text-[12px] font-medium text-warning">
+                      Setup needed
+                    </span>
+                  )}
+                  {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                </div>
+              </button>
 
               {isExpanded && (
-                <CardContent className="space-y-5 border-t pt-5">
-                  <div className="rounded-xl border border-border bg-secondary/50 p-5 space-y-4">
+                <div className="space-y-4 border-t border-border px-5 py-4">
+                  <div className="rounded-lg border border-border bg-secondary/50 p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-bold text-foreground">Setup:</p>
+                      <p className="text-[13px] font-semibold text-foreground">Setup</p>
                       <a href={connector.devPortalUrl} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+                        className="flex items-center gap-1 text-[12px] font-medium text-accent-foreground hover:underline">
                         Open {connector.name} <ExternalLink className="h-3 w-3" />
                       </a>
                     </div>
-                    <ol className="space-y-2.5">
+                    <ol className="space-y-2">
                       {connector.helpSteps.map((s, i) => (
-                        <li key={i} className="flex gap-3 text-sm">
-                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md gradient-primary text-[10px] font-bold text-white">{i + 1}</span>
+                        <li key={i} className="flex gap-2.5 text-[13px]">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[11px] font-bold bg-primary text-primary-foreground">{i + 1}</span>
                           <span className="text-muted-foreground">{s}</span>
                         </li>
                       ))}
@@ -274,42 +269,42 @@ export default function SettingsPage() {
                   </div>
 
                   {status?.configured && (
-                    <div className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
-                      <div>
-                        <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Credentials saved</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
+                    <div className="flex items-center justify-between rounded-lg border border-success/20 bg-success/8 p-3.5">
+                      <div className="text-[13px]">
+                        <span className="font-medium text-success">Credentials saved</span>
+                        <span className="text-muted-foreground ml-2">
                           Client ID: {status.clientIdPreview}
-                          {status.updatedAt && ` · ${new Date(status.updatedAt).toLocaleDateString()}`}
-                        </p>
+                          {status.updatedAt && ` \u00b7 ${new Date(status.updatedAt).toLocaleDateString()}`}
+                        </span>
                       </div>
-                      <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-500 hover:bg-red-500/10"
+                      <Button variant="ghost" size="icon-xs" className="text-destructive hover:text-destructive hover:bg-destructive/8"
                         onClick={() => handleConnectorDelete(connector.id)}>
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   )}
 
-                  <div className="space-y-4">
-                    <p className="text-sm font-semibold text-foreground">
-                      {status?.configured ? "Update:" : "Enter credentials:"}
+                  <div className="space-y-3">
+                    <p className="text-[13px] font-medium text-foreground">
+                      {status?.configured ? "Update credentials" : "Enter credentials"}
                     </p>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-1.5">
-                        <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Client ID</Label>
+                        <Label className="text-[12px] font-medium text-muted-foreground">Client ID</Label>
                         <Input placeholder={`${connector.name} Client ID`} value={form.clientId}
                           onChange={(e) => setConnectorForms((p) => ({ ...p, [connector.id]: { ...form, clientId: e.target.value } }))} />
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Client Secret</Label>
+                        <Label className="text-[12px] font-medium text-muted-foreground">Client Secret</Label>
                         <Input type="password" placeholder={`${connector.name} Client Secret`} value={form.clientSecret}
                           onChange={(e) => setConnectorForms((p) => ({ ...p, [connector.id]: { ...form, clientSecret: e.target.value } }))} />
                       </div>
                     </div>
 
                     {message && message.text && (
-                      <div className={`flex items-start gap-2 rounded-xl border p-3 text-sm font-medium ${
-                        message.type === "success" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                          : "border-red-500/20 bg-red-500/10 text-red-500"
+                      <div className={`flex items-start gap-2 rounded-lg border p-3 text-[13px] font-medium ${
+                        message.type === "success" ? "border-success/20 bg-success/8 text-success"
+                          : "border-destructive/15 bg-destructive/8 text-destructive"
                       }`}>
                         {message.type === "success" ? <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" /> : <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />}
                         {message.text}
@@ -320,25 +315,25 @@ export default function SettingsPage() {
                       {saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</> : status?.configured ? "Update" : "Save"}
                     </Button>
                   </div>
-                </CardContent>
+                </div>
               )}
-            </Card>
+            </div>
           );
         })}
-      </div>
+      </section>
     </div>
   );
 }
 
 function CopyableUri({ value, label, copied, onCopy }: { value: string; label?: string; copied: boolean; onCopy: () => void }) {
   return (
-    <div className="rounded-xl bg-muted p-3 space-y-1">
-      {label && <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/60">{label}</p>}
+    <div className="rounded-md bg-muted p-2.5 space-y-1">
+      {label && <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wide">{label}</p>}
       <div className="flex items-center gap-2">
-        <code className="flex-1 text-xs text-primary break-all font-mono">{value}</code>
+        <code className="flex-1 text-[12px] text-foreground break-all font-mono">{value}</code>
         <button onClick={onCopy}
-          className="shrink-0 flex h-7 w-7 items-center justify-center rounded-lg bg-background border border-border text-muted-foreground hover:text-foreground transition-colors">
-          {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+          className="shrink-0 flex h-6 w-6 items-center justify-center rounded-md bg-background border border-border text-muted-foreground hover:text-foreground transition-colors">
+          {copied ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
         </button>
       </div>
     </div>
