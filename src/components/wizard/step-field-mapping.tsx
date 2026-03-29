@@ -6,9 +6,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   ChevronLeft, ArrowRight, CheckCircle2, Loader2, AlertCircle,
-  Info, Code, ChevronDown, ChevronUp, Plus, Tag, X, Settings2, Search
+  Info, Code, ChevronDown, ChevronUp, Plus, Tag, X, Settings2, Search,
+  FolderOpen, Pencil,
 } from "lucide-react";
 import type { FieldSchema, FieldMapping } from "@/lib/universal-model/types";
+
+/** Strip prefixes like "attr:", "Attr:", "custom:" and clean into a readable name */
+function cleanDisplayName(raw: string): string {
+  return raw
+    .replace(/^attr:/i, "")
+    .replace(/^custom:/i, "")
+    .replace(/^_+/, "")
+    .replace(/[_-]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
+}
 
 const GHL_STANDARD_FIELDS = [
   { key: "name", label: "Full Name" },
@@ -31,15 +43,21 @@ const GHL_STANDARD_FIELDS = [
   { key: "dnd", label: "Do Not Disturb" },
 ];
 
+interface GHLFolder {
+  id: string;
+  name: string;
+}
+
 interface StepFieldMappingProps {
   connectorId: string;
   credentials: Record<string, string>;
   credentialId?: string;
-  onConfirm: (fields: FieldSchema[], mappings: FieldMapping[], extraTags?: string[], contactSource?: string) => void;
+  ghlLocationId?: string;
+  onConfirm: (fields: FieldSchema[], mappings: FieldMapping[], extraTags?: string[], contactSource?: string, customFieldFolderId?: string) => void;
   onBack: () => void;
 }
 
-export function StepFieldMapping({ connectorId, credentials, credentialId, onConfirm, onBack }: StepFieldMappingProps) {
+export function StepFieldMapping({ connectorId, credentials, credentialId, ghlLocationId, onConfirm, onBack }: StepFieldMappingProps) {
   const [fields, setFields] = useState<FieldSchema[]>([]);
   const [mappings, setMappings] = useState<FieldMapping[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +70,21 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
   const [showSkipped, setShowSkipped] = useState(false);
   const [searchFilter, setSearchFilter] = useState("");
   const [addFieldName, setAddFieldName] = useState("");
+
+  // Custom field folder state
+  const [folders, setFolders] = useState<GHLFolder[]>([]);
+  const [selectedFolderId, setSelectedFolderId] = useState<string>("");
+  const [loadingFolders, setLoadingFolders] = useState(false);
+
+  // Fetch available GHL custom field folders
+  useEffect(() => {
+    if (!ghlLocationId) return;
+    setLoadingFolders(true);
+    fetch(`/api/ghl/custom-field-folders?locationId=${ghlLocationId}`)
+      .then((r) => r.json())
+      .then((data) => { setFolders(data.folders || []); setLoadingFolders(false); })
+      .catch(() => setLoadingFolders(false));
+  }, [ghlLocationId]);
 
   useEffect(() => {
     fetch(`/api/connectors/${connectorId}/discover`, {
@@ -66,22 +99,43 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
         }
         return r.json();
       })
-      .then((data) => { setFields(data.fields || []); setMappings(data.mappings || []); setLoading(false); })
+      .then((data) => {
+        setFields(data.fields || []);
+        // Auto-set customFieldName on custom mappings (cleaned, no "attr:")
+        const enrichedMappings = (data.mappings || []).map((m: FieldMapping) => {
+          if (m.targetType === "custom" && !m.customFieldName) {
+            return { ...m, customFieldName: cleanDisplayName(m.sourceField) };
+          }
+          return m;
+        });
+        setMappings(enrichedMappings);
+        setLoading(false);
+      })
       .catch((err) => { setError(err.message); setLoading(false); });
   }, [connectorId, credentials, credentialId]);
 
   function updateMapping(sourceField: string, targetField: string) {
     setMappings((prev) => {
       const existing = prev.find((m) => m.sourceField === sourceField);
+      const isCustom = targetField.startsWith("custom:");
+      const customFieldName = isCustom ? cleanDisplayName(sourceField) : undefined;
       if (existing) {
         return prev.map((m) =>
           m.sourceField === sourceField
-            ? { ...m, targetField, targetType: targetField.startsWith("custom:") ? ("custom" as const) : ("standard" as const) }
+            ? { ...m, targetField, targetType: isCustom ? ("custom" as const) : ("standard" as const), customFieldName }
             : m
         );
       }
-      return [...prev, { sourceField, targetField, targetType: targetField.startsWith("custom:") ? ("custom" as const) : ("standard" as const) }];
+      return [...prev, { sourceField, targetField, targetType: isCustom ? ("custom" as const) : ("standard" as const), customFieldName }];
     });
+  }
+
+  function updateCustomFieldName(sourceField: string, name: string) {
+    setMappings((prev) =>
+      prev.map((m) =>
+        m.sourceField === sourceField ? { ...m, customFieldName: name } : m
+      )
+    );
   }
 
   function removeMapping(sourceField: string) {
@@ -103,9 +157,10 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
       setAddFieldName("");
       return;
     }
+    const cleanName = cleanDisplayName(name);
     const newField: FieldSchema = {
       key: name,
-      label: name.replace(/[_-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+      label: cleanName,
       type: "text",
       isStandard: false,
     };
@@ -114,6 +169,7 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
       sourceField: name,
       targetField: `custom:${name}`,
       targetType: "custom" as const,
+      customFieldName: cleanName,
     }]);
     setAddFieldName("");
   }
@@ -154,7 +210,7 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
   const skippedFields = mappableFields.filter((f) => !mappings.some((m) => m.sourceField === f.key));
 
   const standardMapped = mappings.filter((m) => m.targetType === "standard").length;
-  const customMappings = mappings.filter((m) => m.targetType === "custom");
+  const customMappingsList = mappings.filter((m) => m.targetType === "custom");
 
   const filterField = (f: FieldSchema) => {
     if (!searchFilter) return true;
@@ -182,10 +238,10 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
             <CheckCircle2 className="h-3 w-3" />
             {standardMapped} standard
           </span>
-          {customMappings.length > 0 && (
+          {customMappingsList.length > 0 && (
             <span className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
               <Plus className="h-3 w-3" />
-              {customMappings.length} custom
+              {customMappingsList.length} custom
             </span>
           )}
           <span className="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
@@ -193,6 +249,32 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
           </span>
         </div>
       </div>
+
+      {/* Custom field folder picker */}
+      {customMappingsList.length > 0 && (
+        <div className="rounded-lg border border-border bg-card shadow-xs p-4 space-y-2.5">
+          <div className="flex items-center gap-2">
+            <FolderOpen className="h-4 w-4 text-muted-foreground" />
+            <Label className="text-[13px] font-medium text-foreground">Custom Field Folder</Label>
+          </div>
+          <p className="text-[12px] text-muted-foreground">
+            Choose a GHL folder to put custom fields in. Create folders in GHL first if needed.
+          </p>
+          <select
+            className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-[13px] text-foreground outline-none focus:border-ring focus:shadow-focus transition-all cursor-pointer"
+            value={selectedFolderId}
+            onChange={(e) => setSelectedFolderId(e.target.value)}
+            disabled={loadingFolders}
+          >
+            <option value="">
+              {loadingFolders ? "Loading folders..." : folders.length === 0 ? "No folders found — fields go to root" : "Auto-detect (Custom or connector name)"}
+            </option>
+            {folders.map((f) => (
+              <option key={f.id} value={f.id}>{f.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Search + add field */}
       <div className="flex gap-2">
@@ -226,7 +308,7 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
             Mapped Fields ({mappedFields.length})
           </span>
           <span className="text-[11px] text-muted-foreground">
-            {standardMapped} standard, {customMappings.length} custom
+            {standardMapped} standard, {customMappingsList.length} custom
           </span>
         </div>
         <div className="p-3">
@@ -246,9 +328,9 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
                     key={field.key}
                     field={field}
                     mapping={mapping}
-                    connectorId={connectorId}
                     onUpdate={updateMapping}
                     onRemove={removeMapping}
+                    onUpdateCustomName={updateCustomFieldName}
                   />
                 );
               })}
@@ -283,9 +365,9 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
                   key={field.key}
                   field={field}
                   mapping={undefined}
-                  connectorId={connectorId}
                   onUpdate={updateMapping}
                   onRemove={removeMapping}
+                  onUpdateCustomName={updateCustomFieldName}
                 />
               ))}
             </div>
@@ -385,7 +467,7 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
         <p className="text-[13px] text-muted-foreground">
           {mappings.length} of {mappableFields.length} fields will be imported
         </p>
-        <Button onClick={() => onConfirm(fields, mappings, extraTags, contactSource)} className="gap-2">
+        <Button onClick={() => onConfirm(fields, mappings, extraTags, contactSource, selectedFolderId || undefined)} className="gap-2">
           Confirm Mapping
           <ArrowRight className="h-4 w-4" />
         </Button>
@@ -394,73 +476,103 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, onCon
   );
 }
 
-/* ── Mapping row ── */
+/* ── Mapping row with editable custom field name ── */
 
 function MappingRow({
   field,
   mapping,
-  connectorId,
   onUpdate,
   onRemove,
+  onUpdateCustomName,
 }: {
   field: FieldSchema;
   mapping: FieldMapping | undefined;
-  connectorId: string;
   onUpdate: (sourceField: string, targetField: string) => void;
   onRemove: (sourceField: string) => void;
+  onUpdateCustomName: (sourceField: string, name: string) => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const displayLabel = cleanDisplayName(field.label);
+
   return (
-    <div className="grid grid-cols-[1fr,1.2fr,auto] items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/30">
-      {/* Source */}
-      <div className="min-w-0">
-        <p className="text-[13px] font-medium text-foreground truncate">{field.label}</p>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-muted-foreground font-mono">{field.type}</span>
-          {field.sampleValues?.[0] && (
-            <span className="truncate text-[10px] text-muted-foreground/50">
-              e.g. {field.sampleValues[0]}
+    <div className="rounded-md px-2 py-1.5 transition-colors hover:bg-muted/30">
+      <div className="grid grid-cols-[1fr,1.2fr,auto] items-center gap-2">
+        {/* Source */}
+        <div className="min-w-0">
+          <p className="text-[13px] font-medium text-foreground truncate">{displayLabel}</p>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-muted-foreground font-mono">{field.type}</span>
+            {field.sampleValues?.[0] && (
+              <span className="truncate text-[10px] text-muted-foreground/50">
+                e.g. {field.sampleValues[0]}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Target */}
+        <select
+          className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-[13px] text-foreground outline-none focus:border-ring focus:shadow-focus transition-all cursor-pointer"
+          value={mapping?.targetField || "skip"}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (val === "skip") onRemove(field.key);
+            else onUpdate(field.key, val);
+          }}
+        >
+          <option value="skip">-- Skip --</option>
+          <optgroup label="Standard GHL Fields">
+            {GHL_STANDARD_FIELDS.map((gf) => (
+              <option key={gf.key} value={gf.key}>{gf.label}</option>
+            ))}
+          </optgroup>
+          <option value={`custom:${field.key}`}>+ Create Custom Field</option>
+        </select>
+
+        {/* Status */}
+        <div className="w-14 text-center">
+          {mapping?.targetType === "standard" && (
+            <span className="inline-flex items-center rounded px-1.5 py-px text-[10px] font-semibold bg-success/10 text-success">
+              mapped
+            </span>
+          )}
+          {mapping?.targetType === "custom" && (
+            <span className="inline-flex items-center rounded px-1.5 py-px text-[10px] font-semibold bg-accent text-accent-foreground">
+              custom
+            </span>
+          )}
+          {!mapping && (
+            <span className="inline-flex items-center rounded px-1.5 py-px text-[10px] font-semibold bg-secondary text-muted-foreground">
+              skip
             </span>
           )}
         </div>
       </div>
 
-      {/* Target */}
-      <select
-        className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-[13px] text-foreground outline-none focus:border-ring focus:shadow-focus transition-all cursor-pointer"
-        value={mapping?.targetField || "skip"}
-        onChange={(e) => {
-          const val = e.target.value;
-          if (val === "skip") onRemove(field.key);
-          else onUpdate(field.key, val);
-        }}
-      >
-        <option value="skip">-- Skip --</option>
-        <optgroup label="Standard GHL Fields">
-          {GHL_STANDARD_FIELDS.map((gf) => (
-            <option key={gf.key} value={gf.key}>{gf.label}</option>
-          ))}
-        </optgroup>
-        <option value={`custom:${field.key}`}>+ Create Custom Field</option>
-      </select>
-
-      {/* Status */}
-      <div className="w-14 text-center">
-        {mapping?.targetType === "standard" && (
-          <span className="inline-flex items-center rounded px-1.5 py-px text-[10px] font-semibold bg-success/10 text-success">
-            mapped
-          </span>
-        )}
-        {mapping?.targetType === "custom" && (
-          <span className="inline-flex items-center rounded px-1.5 py-px text-[10px] font-semibold bg-accent text-accent-foreground">
-            custom
-          </span>
-        )}
-        {!mapping && (
-          <span className="inline-flex items-center rounded px-1.5 py-px text-[10px] font-semibold bg-secondary text-muted-foreground">
-            skip
-          </span>
-        )}
-      </div>
+      {/* Editable custom field name — shown for custom mappings */}
+      {mapping?.targetType === "custom" && (
+        <div className="mt-1.5 ml-0.5 flex items-center gap-1.5">
+          <span className="text-[10px] text-muted-foreground shrink-0">GHL name:</span>
+          {editing ? (
+            <input
+              autoFocus
+              className="flex-1 rounded border border-input bg-background px-1.5 py-0.5 text-[12px] text-foreground outline-none focus:border-ring"
+              value={mapping.customFieldName || ""}
+              onChange={(e) => onUpdateCustomName(field.key, e.target.value)}
+              onBlur={() => setEditing(false)}
+              onKeyDown={(e) => { if (e.key === "Enter") setEditing(false); }}
+            />
+          ) : (
+            <button
+              onClick={() => setEditing(true)}
+              className="flex items-center gap-1 text-[12px] font-medium text-foreground hover:text-accent-foreground transition-colors"
+            >
+              {mapping.customFieldName || cleanDisplayName(field.key)}
+              <Pencil className="h-2.5 w-2.5 text-muted-foreground" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

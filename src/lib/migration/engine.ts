@@ -72,7 +72,7 @@ export class MigrationEngine {
         .filter((m) => !m.sourceField.startsWith("_")) // Exclude internal fields like _samplePayload
         .map((m) => ({
           key: m.sourceField,
-          name: cleanFieldName(m.sourceField),
+          name: m.customFieldName || cleanFieldName(m.sourceField),
           dataType: "TEXT",
         }));
 
@@ -85,12 +85,14 @@ export class MigrationEngine {
         },
       });
 
+      const migrationOptions = (migration.options || {}) as Record<string, unknown>;
       const customFieldIdMap = await ensureCustomFields(
         ghlClient,
         migration.ghlLocationId,
         migration.connectorId,
         connector.name,
-        customFieldDefs
+        customFieldDefs,
+        (migrationOptions.customFieldFolderId as string) || null
       );
 
       // Rebuild maps from previously imported contacts (needed for "Push All" resume)

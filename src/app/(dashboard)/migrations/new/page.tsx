@@ -20,9 +20,10 @@ interface WizardState {
   ghlLocationName: string;
   fields: FieldSchema[];
   fieldMappings: FieldMapping[];
-  options: Record<string, boolean>;
+  options: Record<string, string | boolean>;
   extraTags?: string[];
   contactSource?: string;
+  customFieldFolderId?: string;
 }
 
 const STEPS = [
@@ -98,7 +99,10 @@ export default function NewMigrationPage() {
         ghlLocationId: state.ghlLocationId,
         ghlLocationName: state.ghlLocationName,
         fieldMappings: state.fieldMappings,
-        options: state.options || {},
+        options: {
+          ...(state.options || {}),
+          ...(state.customFieldFolderId ? { customFieldFolderId: state.customFieldFolderId } : {}),
+        },
         credentialLabel: state.credentialLabel || `${state.connectorName} Import`,
         extraTags: state.extraTags || [],
         contactSource: state.contactSource || state.connectorId,
@@ -234,8 +238,9 @@ export default function NewMigrationPage() {
             connectorId={state.connectorId}
             credentials={state.credentials || {}}
             credentialId={state.credentialId}
-            onConfirm={(fields, mappings, extraTags, contactSource) => {
-              updateState({ fields, fieldMappings: mappings, extraTags, contactSource });
+            ghlLocationId={state.ghlLocationId}
+            onConfirm={(fields, mappings, extraTags, contactSource, customFieldFolderId) => {
+              updateState({ fields, fieldMappings: mappings, extraTags, contactSource, customFieldFolderId });
               setStep(4);
             }}
             onBack={() => goBack(2)}

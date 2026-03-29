@@ -14,9 +14,10 @@ const createMigrationSchema = z.object({
       targetField: z.string(),
       targetType: z.enum(["standard", "custom"]),
       transform: z.string().optional(),
+      customFieldName: z.string().optional(),
     })
   ),
-  options: z.record(z.string(), z.boolean()).optional(),
+  options: z.record(z.string(), z.union([z.boolean(), z.string()])).optional(),
 
   // Either provide a saved credential ID (reuse) OR raw credentials (create new)
   credentialId: z.string().optional(),

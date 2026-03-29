@@ -26,7 +26,7 @@ interface WizardState {
   ghlLocationName: string;
   fields: FieldSchema[];
   fieldMappings: FieldMapping[];
-  options: Record<string, boolean>;
+  options: Record<string, string | boolean>;
   extraTags?: string[];
   contactSource?: string;
 }
@@ -127,16 +127,22 @@ export function StepReview({ state, onStart, onBack }: StepReviewProps) {
               )}
             </div>
             <div className="rounded-md bg-secondary p-3 space-y-1">
-              {displayMappings.map((m) => (
-                <div key={m.sourceField} className="flex items-center gap-2 text-[13px]">
-                  <span className="text-muted-foreground truncate min-w-0">{m.sourceField}</span>
-                  <ArrowRight className="h-3 w-3 text-muted-foreground/25 shrink-0" />
-                  <span className="font-medium text-foreground truncate min-w-0">{m.targetField.replace("custom:", "")}</span>
-                  {m.targetType === "custom" && (
-                    <span className="inline-flex items-center rounded px-1 py-px text-[10px] font-semibold bg-accent text-accent-foreground shrink-0">new</span>
-                  )}
-                </div>
-              ))}
+              {displayMappings.map((m) => {
+                const sourceDisplay = m.sourceField.replace(/^attr:/i, "");
+                const targetDisplay = m.targetType === "custom"
+                  ? (m.customFieldName || m.targetField.replace(/^custom:/i, "").replace(/^attr:/i, ""))
+                  : m.targetField;
+                return (
+                  <div key={m.sourceField} className="flex items-center gap-2 text-[13px]">
+                    <span className="text-muted-foreground truncate min-w-0">{sourceDisplay}</span>
+                    <ArrowRight className="h-3 w-3 text-muted-foreground/25 shrink-0" />
+                    <span className="font-medium text-foreground truncate min-w-0">{targetDisplay}</span>
+                    {m.targetType === "custom" && (
+                      <span className="inline-flex items-center rounded px-1 py-px text-[10px] font-semibold bg-accent text-accent-foreground shrink-0">new</span>
+                    )}
+                  </div>
+                );
+              })}
               {!showAllMappings && state.fieldMappings.length > 10 && (
                 <button
                   type="button"

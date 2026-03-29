@@ -50,7 +50,8 @@ export async function ensureCustomFields(
   locationId: string,
   connectorId: string,
   connectorName: string,
-  requiredFields: { key: string; name: string; dataType: string }[]
+  requiredFields: { key: string; name: string; dataType: string }[],
+  preferredFolderId?: string | null
 ): Promise<Record<string, string>> {
   const mapping: Record<string, string> = {};
 
@@ -74,16 +75,26 @@ export async function ensureCustomFields(
   // Fetch existing GHL custom fields
   const existingFields = await getCustomFields(client, locationId);
 
-  // Look for a manually-created folder to organize custom fields.
+  // Use user-selected folder if provided, otherwise auto-detect.
   // Tries "Custom" first, then the connector name (e.g. "Podium") as fallback.
   // Folders appear as custom field entries with no dataType.
-  const FOLDER_NAMES = ["custom", connectorName.toLowerCase()];
-  const existingFolder = existingFields.find(
-    (f) =>
-      FOLDER_NAMES.includes(f.name.toLowerCase()) &&
-      (!f.dataType || f.dataType === "")
-  );
-  const folderId = existingFolder?.id || null;
+  let folderId: string | null = null;
+  if (preferredFolderId) {
+    // Verify the folder actually exists
+    const folderExists = existingFields.some(
+      (f) => f.id === preferredFolderId && (!f.dataType || f.dataType === "")
+    );
+    folderId = folderExists ? preferredFolderId : null;
+  }
+  if (!folderId) {
+    const FOLDER_NAMES = ["custom", connectorName.toLowerCase()];
+    const existingFolder = existingFields.find(
+      (f) =>
+        FOLDER_NAMES.includes(f.name.toLowerCase()) &&
+        (!f.dataType || f.dataType === "")
+    );
+    folderId = existingFolder?.id || null;
+  }
 
   // Create missing fields (inside folder if one exists, otherwise at root)
   for (const field of uncached) {

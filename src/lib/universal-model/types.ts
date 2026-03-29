@@ -77,4 +77,6 @@ export interface FieldMapping {
   targetField: string;
   targetType: "standard" | "custom";
   transform?: "none" | "date_format" | "phone_format" | "lowercase" | "uppercase";
+  /** User-editable display name for custom fields in GHL */
+  customFieldName?: string;
 }
