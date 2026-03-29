@@ -103,8 +103,8 @@ export function StepFieldMapping({ connectorId, credentials, credentialId, ghlLo
         setFields(data.fields || []);
         // Auto-set customFieldName on custom mappings (cleaned, no "attr:")
         const enrichedMappings = (data.mappings || []).map((m: FieldMapping) => {
-          if (m.targetType === "custom" && !m.customFieldName) {
-            return { ...m, customFieldName: cleanDisplayName(m.sourceField) };
+          if (m.targetType === "custom") {
+            return { ...m, customFieldName: cleanDisplayName(m.customFieldName || m.sourceField) };
           }
           return m;
         });

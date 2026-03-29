@@ -22,8 +22,8 @@
   --muted:                 #f0f0f2;
   --muted-foreground:      #6e6e80;
 
-  --accent:                #f0edff;
-  --accent-foreground:     #5746af;
+  --accent:                #f0f0f2;
+  --accent-foreground:     #111113;
 
   --destructive:           #e5484d;
   --destructive-foreground:#ffffff;
@@ -35,13 +35,13 @@
 
   --border:                #e8e8ec;
   --input:                 #e8e8ec;
-  --ring:                  #5746af;
+  --ring:                  #111113;
 
   --sidebar-bg:            #fafafa;
   --sidebar-foreground:    #6e6e80;
   --sidebar-border:        #e8e8ec;
-  --sidebar-active:        #f0edff;
-  --sidebar-active-foreground: #5746af;
+  --sidebar-active:        #f0f0f2;
+  --sidebar-active-foreground: #111113;
   --sidebar-hover:         #f5f5f7;
   --sidebar-heading:       #b0b0be;
 
@@ -83,8 +83,8 @@
   --muted:                 #1a1a1f;
   --muted-foreground:      #6e6e80;
 
-  --accent:                rgba(87,70,175,0.12);
-  --accent-foreground:     #9e8cfc;
+  --accent:                rgba(255,255,255,0.07);
+  --accent-foreground:     #ededef;
 
   --destructive:           #e5484d;
   --destructive-foreground:#ffffff;
@@ -96,13 +96,13 @@
 
   --border:                #232329;
   --input:                 #232329;
-  --ring:                  #9e8cfc;
+  --ring:                  #ededef;
 
   --sidebar-bg:            #111114;
   --sidebar-foreground:    #6e6e80;
   --sidebar-border:        #1e1e24;
-  --sidebar-active:        rgba(87,70,175,0.12);
-  --sidebar-active-foreground: #9e8cfc;
+  --sidebar-active:        rgba(255,255,255,0.07);
+  --sidebar-active-foreground: #ededef;
   --sidebar-hover:         #1a1a1f;
   --sidebar-heading:       #3c3c43;
 
@@ -195,8 +195,8 @@ h3, h4 {
 }
 
 ::selection {
-  background: var(--ring);
-  color: white;
+  background: var(--foreground);
+  color: var(--background);
 }
 
 /* ─── Shadows (utility classes) ──────────────────── */
@@ -208,10 +208,10 @@ h3, h4 {
 
 /* ─── Gradients ──────────────────────────────────── */
 .gradient-primary {
-  background: linear-gradient(145deg, #5746af 0%, #7c66dc 100%);
+  background: linear-gradient(145deg, #111113 0%, #3c3c43 100%);
 }
 .gradient-accent {
-  background: linear-gradient(145deg, #5746af 0%, #8b5cf6 100%);
+  background: linear-gradient(145deg, #111113 0%, #2c2c33 100%);
   color: white;
 }
 .gradient-success {
