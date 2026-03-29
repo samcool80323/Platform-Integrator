@@ -206,8 +206,6 @@ export class MigrationEngine {
     customFieldIdMap: Record<string, string>,
     testLimit?: number
   ): Promise<boolean> {
-    let processed = 0;
-    let failed = 0;
     let batchNum = 0;
     let hitLimit = false;
 
@@ -215,11 +213,29 @@ export class MigrationEngine {
       where: { id: this.migrationId },
     });
 
+    // Load already-processed sourceIds so we can skip them on resume
+    const alreadyProcessed = new Set<string>();
+    const existingRecords = await prisma.migrationRecord.findMany({
+      where: {
+        migrationId: this.migrationId,
+        entityType: "CONTACT",
+      },
+      select: { sourceId: true },
+    });
+    for (const r of existingRecords) alreadyProcessed.add(r.sourceId);
+
+    // Start counters from where we left off
+    let processed = migration.processedContacts;
+    let failed = migration.failedContacts;
+
+    // Skip only fully completed batches (strict less-than so partial batches are re-visited)
+    const skipBeforeBatch = testLimit === undefined ? migration.lastBatchProcessed : 0;
+
     for await (const batch of connector.fetchContacts(creds)) {
       batchNum++;
 
-      // Skip already processed batches (for resume)
-      if (batchNum <= migration.lastBatchProcessed) continue;
+      // Skip fully completed batches (not the last partial one)
+      if (batchNum < skipBeforeBatch) continue;
 
       for (const contact of batch) {
         // Check test limit BEFORE processing — hard stop
@@ -227,6 +243,9 @@ export class MigrationEngine {
           hitLimit = true;
           break;
         }
+
+        // Skip contacts already processed in a previous run
+        if (alreadyProcessed.has(contact.sourceId)) continue;
 
         try {
           await acquireRateLimit(locationId);
