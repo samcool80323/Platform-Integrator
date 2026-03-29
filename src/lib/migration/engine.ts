@@ -357,11 +357,30 @@ export class MigrationEngine {
       message: "Fetching conversations...",
     });
 
+    // Load contacts that already had conversations imported (for resume/dedup)
+    const alreadyImportedConvos = new Set<string>();
+    const existingConvoRecords = await prisma.migrationRecord.findMany({
+      where: {
+        migrationId: this.migrationId,
+        entityType: "CONVERSATION",
+        status: "SUCCESS",
+      },
+      select: { sourceId: true },
+    });
+    for (const r of existingConvoRecords) alreadyImportedConvos.add(r.sourceId);
+
+    if (alreadyImportedConvos.size > 0) {
+      await this.log("INFO", `Skipping ${alreadyImportedConvos.size} contacts that already have conversations imported`);
+    }
+
     // Strategy: fetch conversations per contact for accuracy
     if (connector.fetchConversationsForContact) {
       await this.log("INFO", `Fetching conversations for ${this.sourceIdToGhlId.size} contacts...`);
 
       for (const [sourceId, ghlContactId] of this.sourceIdToGhlId) {
+        // Skip contacts that already had conversations imported
+        if (alreadyImportedConvos.has(ghlContactId)) continue;
+
         try {
           await this.log("DEBUG", `Fetching conversations for contact ${sourceId} (GHL: ${ghlContactId})...`);
 
@@ -396,6 +415,17 @@ export class MigrationEngine {
           await addContactNote(ghlClient, {
             contactId: ghlContactId,
             body: transcript,
+          });
+
+          // Track in DB so we don't re-import on next resume
+          await prisma.migrationRecord.create({
+            data: {
+              migrationId: this.migrationId,
+              entityType: "CONVERSATION",
+              sourceId: ghlContactId,
+              ghlId: ghlContactId,
+              status: "SUCCESS",
+            },
           });
 
           processed++;
@@ -455,6 +485,9 @@ export class MigrationEngine {
       await this.log("INFO", `Matched ${convsByContact.size} of ${totalConvs} conversations to contacts`);
 
       for (const [ghlContactId, convs] of convsByContact) {
+        // Skip contacts that already had conversations imported
+        if (alreadyImportedConvos.has(ghlContactId)) continue;
+
         const transcript = buildTranscript(convs, connector.name);
         if (!transcript) continue;
 
@@ -475,6 +508,17 @@ export class MigrationEngine {
             contactId: ghlContactId,
             body: transcript,
           });
+
+          await prisma.migrationRecord.create({
+            data: {
+              migrationId: this.migrationId,
+              entityType: "CONVERSATION",
+              sourceId: ghlContactId,
+              ghlId: ghlContactId,
+              status: "SUCCESS",
+            },
+          });
+
           processed++;
         } catch (error) {
           failed++;

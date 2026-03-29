@@ -136,7 +136,9 @@ export class PodiumConnector implements PlatformConnector {
     creds: Record<string, string>
   ): AsyncGenerator<UniversalContact[], void, unknown> {
     let cursor: string | undefined;
+    let page = 0;
     do {
+      page++;
       const url = new URL(`${PODIUM_API_BASE}/contacts`);
       url.searchParams.set("limit", "100");
       if (cursor) url.searchParams.set("cursor", cursor);
@@ -149,6 +151,8 @@ export class PodiumConnector implements PlatformConnector {
       const contacts = data.data || data.contacts || [];
       if (contacts.length === 0) break;
 
+      console.log(`[Podium] fetchContacts page ${page}: ${contacts.length} contacts`);
+
       yield contacts.map((c: Record<string, unknown>) => {
         // Save conversation UIDs from the contact list response
         const contactUid = String(c.uid || c.id);
@@ -158,8 +162,19 @@ export class PodiumConnector implements PlatformConnector {
         }
         return mapPodiumContact(c);
       });
-      cursor = data.metadata?.cursor || data.nextCursor;
-    } while (cursor);
+
+      // Detect next-page cursor from various possible response shapes
+      const meta = data.metadata || data.meta || {};
+      cursor = meta.cursor || meta.nextCursor || meta.next_cursor
+        || data.nextCursor || data.next_cursor || data.cursor || undefined;
+
+      // If cursor is empty string or null, treat as no more pages
+      if (!cursor) break;
+
+      console.log(`[Podium] Next cursor: ${String(cursor).slice(0, 60)}...`);
+    } while (true);
+
+    console.log(`[Podium] fetchContacts done — ${page} page(s), ${this.contactConvos.size} contacts with conversations`);
   }
 
   /**
